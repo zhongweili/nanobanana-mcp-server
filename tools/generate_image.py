@@ -2,6 +2,7 @@ from typing import Annotated, Optional, List
 from pydantic import Field
 from fastmcp import FastMCP, Context
 from fastmcp.tools.tool import ToolResult
+from mcp.types import ResourceLink, TextContent
 from core.exceptions import ValidationError
 import logging
 
@@ -38,7 +39,7 @@ def register_generate_image_tool(server: FastMCP):
         )] = None,
         images_b64: Annotated[Optional[List[str]], Field(
             description="Inline base64 input images for composition/editing.",
-            max_items=4
+            max_length=4
         )] = None,
         mime_types: Annotated[Optional[List[str]], Field(
             description="MIME types matching images_b64."
@@ -69,8 +70,8 @@ def register_generate_image_tool(server: FastMCP):
             if images_b64 and mime_types:
                 input_images = list(zip(images_b64, mime_types))
             
-            # Generate images
-            mcp_images, metadata = image_service.generate_images(
+            # Generate images and save to file system
+            thumbnail_images, metadata = image_service.generate_images(
                 prompt=prompt,
                 n=n,
                 negative_prompt=negative_prompt,
@@ -78,25 +79,49 @@ def register_generate_image_tool(server: FastMCP):
                 input_images=input_images
             )
             
-            # Create response
-            summary = (
-                f"Generated {len(mcp_images)} image(s) with Gemini 2.5 Flash Image from your prompt."
-            )
-            if input_images:
-                summary += " Included edits/conditioning from provided image(s)."
+            # Create response with file paths and thumbnails
+            if metadata:
+                # Build summary with file information
+                summary_lines = [
+                    f"✅ Generated {len(metadata)} image(s) with Gemini 2.5 Flash Image."
+                ]
+                
+                if input_images:
+                    summary_lines.append("🖼️ Included edits/conditioning from provided image(s).")
+                
+                # Add file information
+                summary_lines.append("\n📁 **Saved Images:**")
+                for i, meta in enumerate(metadata, 1):
+                    size_mb = round(meta['size_bytes'] / (1024 * 1024), 1)
+                    summary_lines.append(
+                        f"  {i}. `{meta['full_path']}`\n"
+                        f"     📏 {meta['width']}×{meta['height']} • 💾 {size_mb}MB"
+                    )
+                
+                summary_lines.append(f"\n🖼️ **Thumbnail previews shown below** (actual images saved to disk)")
+                full_summary = "\n".join(summary_lines)
+                
+                content = [TextContent(type="text", text=full_summary)] + thumbnail_images
+            else:
+                # Fallback if no images generated
+                summary = "❌ No images were generated. Please check the logs for details."
+                content = [TextContent(type="text", text=summary)]
             
             structured_content = {
                 "requested": n,
-                "returned": len(mcp_images),
+                "returned": len(thumbnail_images),
                 "negative_prompt_applied": bool(negative_prompt),
                 "used_inline_images": bool(images_b64),
+                "output_method": "file_system",
                 "images": metadata,
+                "file_paths": [m.get('full_path') for m in metadata if m.get('full_path')],
+                "total_size_mb": round(sum(m.get('size_bytes', 0) for m in metadata) / (1024 * 1024), 2)
             }
             
-            logger.info(f"Successfully generated {len(mcp_images)} images")
+            logger.info(f"Successfully generated {len(thumbnail_images)} images")
             
             return ToolResult(
-                content=[summary] + mcp_images,
+                content=content,
                 structured_content=structured_content
             )
             

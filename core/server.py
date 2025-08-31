@@ -36,18 +36,22 @@ class NanoBananaMCP:
         from tools.generate_image import register_generate_image_tool
         from tools.edit_image import register_edit_image_tool
         from tools.upload_file import register_upload_file_tool
+        from tools.output_stats import register_output_stats_tool
         
         register_generate_image_tool(self.server)
         register_edit_image_tool(self.server)
         register_upload_file_tool(self.server)
+        register_output_stats_tool(self.server)
     
     def _register_resources(self):
         """Register all resources with the server."""
         from resources.file_metadata import register_file_metadata_resource
         from resources.template_catalog import register_template_catalog_resource
+        from resources.operation_status import register_operation_status_resources
         
         register_file_metadata_resource(self.server)
         register_template_catalog_resource(self.server)
+        register_operation_status_resources(self.server)
     
     def _register_prompts(self):
         """Register all prompts with the server."""

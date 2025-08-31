@@ -458,7 +458,7 @@ def register_generate_image_tool(server: FastMCP):
         )] = None,
         images_b64: Annotated[Optional[List[str]], Field(
             description="Inline base64 input images for composition/editing.",
-            max_items=4
+            max_length=4
         )] = None,
         mime_types: Annotated[Optional[List[str]], Field(
             description="MIME types matching images_b64."
