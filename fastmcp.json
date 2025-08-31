@@ -1,0 +1,69 @@
+{
+  "mcpServers": {
+    "nano-banana": {
+      "command": "python",
+      "args": [
+        "server.py"
+      ],
+      "cwd": ".",
+      "env": {
+        "LOG_LEVEL": "INFO",
+        "LOG_FORMAT": "standard"
+      }
+    }
+  },
+  "server": {
+    "name": "nano-banana-mcp",
+    "version": "0.1.0",
+    "description": "AI-powered image generation using Gemini 2.5 Flash Image",
+    "entrypoint": "server:create_app",
+    "dependencies": [
+      "fastmcp>=2.11.0",
+      "google-genai>=0.3.0",
+      "pillow>=10.4.0",
+      "python-dotenv>=1.0.1",
+      "pydantic>=2.0.0"
+    ],
+    "dev_dependencies": [
+      "ruff>=0.1.0",
+      "pytest>=7.0.0",
+      "pytest-asyncio>=0.21.0",
+      "mypy>=1.0.0"
+    ],
+    "environment": {
+      "GEMINI_API_KEY": {
+        "required": true,
+        "description": "Google Gemini API key for image generation"
+      },
+      "GOOGLE_API_KEY": {
+        "required": false,
+        "description": "Alternative name for Gemini API key"
+      },
+      "LOG_LEVEL": {
+        "required": false,
+        "default": "INFO",
+        "description": "Logging level (DEBUG, INFO, WARNING, ERROR)"
+      },
+      "LOG_FORMAT": {
+        "required": false,
+        "default": "standard",
+        "description": "Log format (standard, json, detailed)"
+      },
+      "FASTMCP_TRANSPORT": {
+        "required": false,
+        "default": "stdio",
+        "description": "Transport protocol (stdio, http)"
+      },
+      "FASTMCP_HOST": {
+        "required": false,
+        "default": "127.0.0.1",
+        "description": "Host for HTTP transport"
+      },
+      "FASTMCP_PORT": {
+        "required": false,
+        "default": "9000",
+        "description": "Port for HTTP transport"
+      }
+    }
+  }
+}
