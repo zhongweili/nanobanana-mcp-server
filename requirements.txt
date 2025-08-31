@@ -1,0 +1,4 @@
+fastmcp>=2.11.0
+google-genai>=0.3.0
+pillow>=10.4.0
+python-dotenv>=1.0.1
