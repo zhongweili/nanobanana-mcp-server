@@ -6,6 +6,6 @@ from .operation_status import register_operation_status_resources
 
 __all__ = [
     "register_file_metadata_resource",
-    "register_template_catalog_resource", 
-    "register_operation_status_resources"
+    "register_template_catalog_resource",
+    "register_operation_status_resources",
 ]
