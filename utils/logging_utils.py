@@ -36,8 +36,8 @@ def setup_logging(level: str = "INFO", format_type: str = "standard") -> None:
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
     
-    # Add console handler
-    console_handler = logging.StreamHandler(sys.stdout)
+    # Add console handler - use stderr for MCP STDIO compatibility
+    console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
     

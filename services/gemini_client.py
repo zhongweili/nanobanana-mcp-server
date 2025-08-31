@@ -38,6 +38,9 @@ class GeminiClient:
     def generate_content(self, contents: List, **kwargs) -> any:
         """Generate content using Gemini API with error handling."""
         try:
+            # Remove unsupported request_options parameter
+            kwargs.pop('request_options', None)
+            
             response = self.client.models.generate_content(
                 model=self.gemini_config.model_name,
                 contents=contents,
@@ -57,7 +60,7 @@ class GeminiClient:
         
         for part in candidates[0].content.parts:
             inline_data = getattr(part, "inline_data", None)
-            if inline_data and hasattr(inline_data, "data"):
+            if inline_data and hasattr(inline_data, "data") and inline_data.data:
                 images.append(inline_data.data)
         
         return images
