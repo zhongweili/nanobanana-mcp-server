@@ -6,7 +6,7 @@ Validates the project structure without requiring external dependencies.
 
 import os
 import sys
-from pathlib import Path
+
 
 def check_file_exists(file_path: str, description: str) -> bool:
     """Check if a file exists and report status."""
@@ -17,6 +17,7 @@ def check_file_exists(file_path: str, description: str) -> bool:
         print(f"❌ {description}: {file_path} (MISSING)")
         return False
 
+
 def check_directory_exists(dir_path: str, description: str) -> bool:
     """Check if a directory exists and report status."""
     if os.path.isdir(dir_path):
@@ -26,11 +27,12 @@ def check_directory_exists(dir_path: str, description: str) -> bool:
         print(f"❌ {description}: {dir_path}/ (MISSING)")
         return False
 
+
 def check_python_syntax(file_path: str) -> bool:
     """Check if a Python file has valid syntax."""
     try:
-        with open(file_path, 'r') as f:
-            compile(f.read(), file_path, 'exec')
+        with open(file_path, "r") as f:
+            compile(f.read(), file_path, "exec")
         return True
     except SyntaxError as e:
         print(f"❌ Syntax error in {file_path}: {e}")
@@ -39,13 +41,14 @@ def check_python_syntax(file_path: str) -> bool:
         print(f"❌ Error reading {file_path}: {e}")
         return False
 
+
 def main():
     """Main validation function."""
     print("🔍 Nano Banana MCP Server - Structure Validation")
     print("=" * 50)
-    
+
     all_checks_passed = True
-    
+
     # Core files
     print("\n📋 Core Files:")
     core_files = [
@@ -53,13 +56,13 @@ def main():
         ("requirements.txt", "Python dependencies"),
         (".env.example", "Environment template"),
         ("README.md", "Documentation"),
-        ("pyproject.toml", "Project configuration")
+        ("pyproject.toml", "Project configuration"),
     ]
-    
+
     for file_path, description in core_files:
         if not check_file_exists(file_path, description):
             all_checks_passed = False
-    
+
     # Directory structure
     print("\n📁 Directory Structure:")
     directories = [
@@ -70,13 +73,13 @@ def main():
         ("resources", "MCP resources"),
         ("prompts", "Prompt templates"),
         ("utils", "Utility functions"),
-        ("tests", "Test suite")
+        ("tests", "Test suite"),
     ]
-    
+
     for dir_path, description in directories:
         if not check_directory_exists(dir_path, description):
             all_checks_passed = False
-    
+
     # Module files
     print("\n🐍 Python Modules:")
     python_files = [
@@ -98,16 +101,16 @@ def main():
         "prompts/editing.py",
         "utils/image_utils.py",
         "utils/logging_utils.py",
-        "utils/validation_utils.py"
+        "utils/validation_utils.py",
     ]
-    
+
     for file_path in python_files:
         if check_file_exists(file_path, f"Module {file_path}"):
             if not check_python_syntax(file_path):
                 all_checks_passed = False
         else:
             all_checks_passed = False
-    
+
     # __init__.py files
     print("\n📦 Package Init Files:")
     init_files = [
@@ -118,13 +121,13 @@ def main():
         "resources/__init__.py",
         "prompts/__init__.py",
         "utils/__init__.py",
-        "tests/__init__.py"
+        "tests/__init__.py",
     ]
-    
+
     for init_file in init_files:
         if not check_file_exists(init_file, f"Package init {init_file}"):
             all_checks_passed = False
-    
+
     # Summary
     print("\n" + "=" * 50)
     if all_checks_passed:
@@ -140,6 +143,7 @@ def main():
         print("❌ Some validation checks FAILED!")
         print("Please fix the missing files/directories before proceeding.")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())
