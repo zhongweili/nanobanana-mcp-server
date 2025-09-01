@@ -6,6 +6,15 @@ SUPPORTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "
 # Default aspect ratio options
 ASPECT_RATIOS = ["Square image", "Portrait", "Landscape", "16:9", "4:3"]
 
+# File processing constants
+THUMBNAIL_SIZE = 256
+TEMP_FILE_SUFFIX = ".tmp"
+MAX_INPUT_IMAGES = 3
+
+# Image processing defaults
+DEFAULT_IMAGE_FORMAT = "png"
+THUMBNAIL_FORMAT = "jpeg"
+
 # Template categories
 TEMPLATE_CATEGORIES = {
     "photography": "High-quality photographic images",

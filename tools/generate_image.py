@@ -4,7 +4,11 @@ from fastmcp import FastMCP, Context
 from fastmcp.tools.tool import ToolResult
 from mcp.types import TextContent
 from core.exceptions import ValidationError
+from config.constants import MAX_INPUT_IMAGES
 import logging
+import mimetypes
+import base64
+import os
 
 
 def register_generate_image_tool(server: FastMCP):
@@ -109,12 +113,10 @@ def register_generate_image_tool(server: FastMCP):
                 raise ValidationError("Mode must be 'auto', 'generate', or 'edit'")
 
             if input_image_paths:
-                if len(input_image_paths) > 3:
-                    raise ValidationError("Maximum 3 input images allowed")
+                if len(input_image_paths) > MAX_INPUT_IMAGES:
+                    raise ValidationError(f"Maximum {MAX_INPUT_IMAGES} input images allowed")
 
                 # Validate that all files exist
-                import os
-
                 for i, path in enumerate(input_image_paths):
                     if not os.path.exists(path):
                         raise ValidationError(f"Input image {i + 1} not found: {path}")
@@ -156,8 +158,6 @@ def register_generate_image_tool(server: FastMCP):
                 input_images = None
                 if input_image_paths:
                     input_images = []
-                    import mimetypes
-                    import base64
 
                     for path in input_image_paths:
                         try:
@@ -321,8 +321,6 @@ def register_generate_image_tool(server: FastMCP):
 
 
 def _get_enhanced_image_service():
-    """Get the enhanced image service instance (would be dependency injection in real app)."""
-    # This would be properly injected in a real implementation
+    """Get the enhanced image service instance."""
     from services import get_enhanced_image_service
-
     return get_enhanced_image_service()

@@ -24,15 +24,29 @@ class GeminiClient:
 
     def create_image_parts(self, images_b64: List[str], mime_types: List[str]) -> List[gx.Part]:
         """Convert base64 images to Gemini Part objects."""
+        if not images_b64 or not mime_types:
+            return []
+        
+        if len(images_b64) != len(mime_types):
+            raise ValueError(f"Images and MIME types count mismatch: {len(images_b64)} vs {len(mime_types)}")
+        
         parts = []
-        for b64, mime_type in zip(images_b64, mime_types):
+        for i, (b64, mime_type) in enumerate(zip(images_b64, mime_types)):
+            if not b64 or not mime_type:
+                self.logger.warning(f"Skipping empty image or MIME type at index {i}")
+                continue
+                
             try:
                 raw_data = base64.b64decode(b64)
+                if len(raw_data) == 0:
+                    self.logger.warning(f"Skipping empty image data at index {i}")
+                    continue
+                    
                 part = gx.Part.from_bytes(data=raw_data, mime_type=mime_type)
                 parts.append(part)
             except Exception as e:
-                self.logger.error(f"Failed to process image: {e}")
-                raise ValueError(f"Invalid image data: {e}")
+                self.logger.error(f"Failed to process image at index {i}: {e}")
+                raise ValueError(f"Invalid image data at index {i}: {e}")
         return parts
 
     def generate_content(self, contents: List, **kwargs) -> any:
@@ -53,10 +67,15 @@ class GeminiClient:
         """Extract image bytes from Gemini response."""
         images = []
         candidates = getattr(response, "candidates", None)
-        if not candidates:
+        if not candidates or len(candidates) == 0:
             return images
 
-        for part in candidates[0].content.parts:
+        first_candidate = candidates[0]
+        if not hasattr(first_candidate, "content") or not first_candidate.content:
+            return images
+
+        content_parts = getattr(first_candidate.content, "parts", [])
+        for part in content_parts:
             inline_data = getattr(part, "inline_data", None)
             if inline_data and hasattr(inline_data, "data") and inline_data.data:
                 images.append(inline_data.data)
