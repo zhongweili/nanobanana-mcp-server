@@ -60,3 +60,6 @@ htmlcov/
 # Local configuration
 .env.local
 config/local.py
+
+# Claude Code memory files
+.claude-memory
