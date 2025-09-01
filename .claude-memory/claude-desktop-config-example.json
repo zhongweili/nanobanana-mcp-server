@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "nanobanana-mcp-server-test": {
+      "command": "nanobanana-mcp-server",
+      "env": {
+        "GEMINI_API_KEY": "your-actual-gemini-api-key-here"
+      }
+    }
+  }
+}

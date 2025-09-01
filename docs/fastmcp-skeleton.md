@@ -13,16 +13,7 @@ I’ve grounded key choices with official docs—citations follow each relevant 
 >
 > * `server.py` (the MCP server)
 > * optional `.env` (to hold `GEMINI_API_KEY`)
-> * optional `requirements.txt`
-
-### `requirements.txt`
-
-```
-fastmcp>=2.11.0
-google-genai>=0.3.0
-pillow>=10.4.0
-python-dotenv>=1.0.1
-```
+> * `pyproject.toml` (dependencies and project config)
 
 ### `.env`
 
@@ -372,10 +363,9 @@ if __name__ == "__main__":
 * Start locally (STDIO default):
 
 ```bash
-uv venv && source .venv/bin/activate  # or python -m venv venv
-pip install -r requirements.txt
+uv sync
 export GEMINI_API_KEY=YOUR_KEY
-python server.py
+uv run python server.py
 ```
 
 FastMCP defaults to STDIO transport; MCP clients can connect immediately. For HTTP transport, use `mcp.run(transport="http", host="127.0.0.1", port=9000)`. ([FastMCP][1])

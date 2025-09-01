@@ -1,6 +1,6 @@
 [project]
 name = "nanobanana-mcp-server"
-version = "0.1.0"
+version = "0.1.4"
 description = "A production-ready MCP server for AI-powered image generation using Gemini 2.5 Flash Image"
 authors = [
     { name = "Nano Banana Team", email = "team@nanobanana.dev" }
@@ -63,17 +63,18 @@ Documentation = "https://docs.nanobanana.dev"
 "Bug Tracker" = "https://github.com/nano-banana/mcp-server/issues"
 
 [project.scripts]
-nanobanana-mcp-server = "server:main"
+nanobanana-mcp-server = "nanobanana_mcp_server.server:main"
+nanobanana-mcp = "nanobanana_mcp_server.server:main"
 
 [project.entry-points.fastmcp]
-nanobanana-mcp-server = "server:create_app"
+nanobanana-mcp-server = "nanobanana_mcp_server.server:create_app"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["config", "core", "services", "tools", "resources", "prompts", "utils"]
+packages = ["nanobanana_mcp_server"]
 
 [tool.ruff]
 target-version = "py311"
@@ -220,3 +221,9 @@ extend-exclude = '''
   | dist
 )/
 '''
+
+[dependency-groups]
+dev = [
+    "build>=1.3.0",
+    "twine>=6.1.0",
+]

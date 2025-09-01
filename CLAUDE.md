@@ -10,13 +10,8 @@ This repository contains a production-ready **Nano Banana MCP Server** - an AI-p
 
 ### Environment Setup
 ```bash
-# Using modern uv (recommended)
-uv venv && source .venv/bin/activate
-uv pip install -r requirements.txt
-
-# Traditional Python setup
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
+# Using uv (recommended)
+uv sync
 
 # Set up environment
 cp .env.example .env
@@ -26,19 +21,19 @@ cp .env.example .env
 ### Running the Server
 ```bash
 # FastMCP CLI (recommended for development)
-fastmcp dev server.py:create_app
+fastmcp dev nanobanana_mcp_server.server:create_app
 
 # Direct Python execution
-python server.py
+python -m nanobanana_mcp_server.server
 
 # HTTP transport mode
-FASTMCP_TRANSPORT=http python server.py
+FASTMCP_TRANSPORT=http python -m nanobanana_mcp_server.server
 ```
 
 ### Development Workflow
 ```bash
 # Start development server (clean startup)
-./scripts/cleanup-ports.sh && fastmcp dev server.py:create_app
+./scripts/cleanup-ports.sh && fastmcp dev nanobanana_mcp_server.server:create_app
 
 # Code formatting and linting
 ruff format .
@@ -222,14 +217,14 @@ def register_photography_prompts(server: FastMCP):
 ./scripts/cleanup-ports.sh
 
 # Then run normally
-fastmcp dev server.py:create_app
+fastmcp dev nanobanana_mcp_server.server:create_app
 
 # Alternative: Specify different ports if cleanup doesn't work
-fastmcp dev server.py:create_app --ui-port 6275 --server-port 6278
+fastmcp dev nanobanana_mcp_server.server:create_app --ui-port 6275 --server-port 6278
 
 # Manual cleanup if needed
 pkill -f "@modelcontextprotocol/inspector"
-pkill -f "fastmcp.*server.py"
+pkill -f "fastmcp.*nanobanana_mcp_server.server"
 ```
 
 **JSON Parsing Errors in STDIO**:
@@ -259,8 +254,8 @@ export GOOGLE_API_KEY=your_api_key_here
 **Logging Levels**:
 ```bash
 # Debug mode for development
-LOG_LEVEL=DEBUG fastmcp dev server.py:create_app
+LOG_LEVEL=DEBUG fastmcp dev nanobanana_mcp_server.server:create_app
 
 # Production logging with JSON format
-LOG_LEVEL=INFO LOG_FORMAT=json python server.py
+LOG_LEVEL=INFO LOG_FORMAT=json python -m nanobanana_mcp_server.server
 ```
