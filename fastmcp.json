@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "nano-banana": {
+    "nanobanana-mcp-server": {
       "command": "python",
       "args": [
         "server.py"
@@ -13,7 +13,7 @@
     }
   },
   "server": {
-    "name": "nano-banana-mcp",
+    "name": "nanobanana-mcp-server",
     "version": "0.1.0",
     "description": "AI-powered image generation using Gemini 2.5 Flash Image",
     "entrypoint": "server:create_app",

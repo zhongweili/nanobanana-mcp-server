@@ -1,5 +1,5 @@
 [project]
-name = "nano-banana-mcp"
+name = "nanobanana-mcp-server"
 version = "0.1.0"
 description = "A production-ready MCP server for AI-powered image generation using Gemini 2.5 Flash Image"
 authors = [
@@ -63,10 +63,10 @@ Documentation = "https://docs.nanobanana.dev"
 "Bug Tracker" = "https://github.com/nano-banana/mcp-server/issues"
 
 [project.scripts]
-nano-banana-mcp = "server:main"
+nanobanana-mcp-server = "server:main"
 
 [project.entry-points.fastmcp]
-nano-banana = "server:create_app"
+nanobanana-mcp-server = "server:create_app"
 
 [build-system]
 requires = ["hatchling"]

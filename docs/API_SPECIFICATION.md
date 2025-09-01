@@ -6,7 +6,7 @@ This document defines the complete API specification for the Nano Banana MCP Ser
 
 ## Server Information
 
-- **Name**: `nano-banana-mcp`
+- **Name**: `nanobanana-mcp-server`
 - **Version**: `1.0.0`
 - **Protocol**: MCP (Model Context Protocol)
 - **Framework**: FastMCP

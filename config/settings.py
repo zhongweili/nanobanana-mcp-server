@@ -9,7 +9,7 @@ class ServerConfig:
     """Server configuration settings."""
 
     gemini_api_key: str
-    server_name: str = "nano-banana-mcp"
+    server_name: str = "nanobanana-mcp-server"
     transport: str = "stdio"  # stdio or http
     host: str = "127.0.0.1"
     port: int = 9000
