@@ -53,7 +53,6 @@ def main():
     print("\n📋 Core Files:")
     core_files = [
         ("server.py", "Main server entry point"),
-        ("requirements.txt", "Python dependencies"),
         (".env.example", "Environment template"),
         ("README.md", "Documentation"),
         ("pyproject.toml", "Project configuration"),
@@ -134,10 +133,10 @@ def main():
         print("🎉 All structure validation checks PASSED!")
         print("✅ Server is ready for dependency installation and testing.")
         print("\nNext steps:")
-        print("1. Install dependencies: pip install -r requirements.txt")
+        print("1. Install dependencies: uv sync")
         print("2. Set up environment: cp .env.example .env")
         print("3. Add your GEMINI_API_KEY to .env")
-        print("4. Run server: python server.py")
+        print("4. Run server: uv run python -m nanobanana_mcp_server.server")
         return 0
     else:
         print("❌ Some validation checks FAILED!")

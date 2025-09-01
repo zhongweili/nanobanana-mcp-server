@@ -1,9 +1,12 @@
 {
   "mcpServers": {
     "nanobanana-mcp-server": {
-      "command": "python",
+      "command": "uv",
       "args": [
-        "server.py"
+        "run",
+        "python",
+        "-m",
+        "nanobanana_mcp_server.server"
       ],
       "cwd": ".",
       "env": {
@@ -16,7 +19,7 @@
     "name": "nanobanana-mcp-server",
     "version": "0.1.0",
     "description": "AI-powered image generation using Gemini 2.5 Flash Image",
-    "entrypoint": "server:create_app",
+    "entrypoint": "nanobanana_mcp_server.server:create_app",
     "dependencies": [
       "fastmcp>=2.11.0",
       "google-genai>=0.3.0",
