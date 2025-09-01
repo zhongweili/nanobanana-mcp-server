@@ -64,12 +64,14 @@ class GeminiClient:
         return images
 
     def upload_file(self, file_path: str, display_name: Optional[str] = None):
-        """Upload file to Gemini Files API."""
+        """Upload file to Gemini Files API.
+
+        Note: display_name is kept for API compatibility but ignored as the
+        Gemini Files API does not support display_name parameter in upload.
+        """
         try:
-            if display_name:
-                return self.client.files.upload(file=file_path, display_name=display_name)
-            else:
-                return self.client.files.upload(file=file_path)
+            # Gemini Files API only accepts file parameter
+            return self.client.files.upload(file=file_path)
         except Exception as e:
             self.logger.error(f"File upload error: {e}")
             raise

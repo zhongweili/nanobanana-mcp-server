@@ -272,12 +272,17 @@ class EnhancedImageService:
             all_metadata = []
 
             for i, edited_image_bytes in enumerate(edited_images):
-                thumbnail_image, metadata = self._process_edited_image(
-                    edited_image_bytes, instruction, parent_file_id=None, edit_index=i + 1
-                )
+                try:
+                    thumbnail_image, metadata = self._process_edited_image(
+                        edited_image_bytes, instruction, parent_file_id=None, edit_index=i + 1
+                    )
 
-                all_thumbnail_images.append(thumbnail_image)
-                all_metadata.append(metadata)
+                    all_thumbnail_images.append(thumbnail_image)
+                    all_metadata.append(metadata)
+                except Exception as e:
+                    self.logger.error(f"Failed to process edited image {i + 1}: {e}")
+                    # Continue with other images rather than failing completely
+                    continue
 
             self.logger.info(
                 f"Successfully edited image from path, generated {len(all_thumbnail_images)} result(s)"

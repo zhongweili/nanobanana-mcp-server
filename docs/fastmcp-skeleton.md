@@ -227,8 +227,8 @@ def upload_file(
     Useful when the image is larger than 20MB or reused across prompts.
     """
     client = _client()
-    file_obj = client.files.upload(file=path) if display_name is None \
-        else client.files.upload(file=path, display_name=display_name)
+    # Gemini Files API only accepts file parameter
+    file_obj = client.files.upload(file=path)
 
     return {
         "uri": file_obj.uri,
