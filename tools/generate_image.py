@@ -194,7 +194,7 @@ def register_generate_image_tool(server: FastMCP):
             # Create response with file paths and thumbnails
             if metadata:
                 # Filter out any None entries from metadata (defensive programming)
-                metadata = [m for m in metadata if m is not None]
+                metadata = [m for m in metadata if m is not None and isinstance(m, dict)]
 
                 if not metadata:
                     summary = f"❌ Failed to {detected_mode} image(s): {prompt[:50]}... No valid results returned."
