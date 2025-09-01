@@ -1,6 +1,6 @@
 [project]
 name = "nanobanana-mcp-server"
-version = "0.1.4"
+version = "0.1.5"
 description = "A production-ready MCP server for AI-powered image generation using Gemini 2.5 Flash Image"
 authors = [
     { name = "Nano Banana Team", email = "team@nanobanana.dev" }
