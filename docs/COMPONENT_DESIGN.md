@@ -7,7 +7,7 @@ This document defines the detailed component architecture for the Nano Banana MC
 ## Directory Structure
 
 ```
-nanobanana-server/
+nanobanana-mcp-server/
 ├── server.py                 # Main server entry point
 ├── pyproject.toml            # uv dependencies and project config
 ├── ruff.toml                 # Ruff linting and formatting config
@@ -75,7 +75,7 @@ from dotenv import load_dotenv
 class ServerConfig:
     """Server configuration settings."""
     gemini_api_key: str
-    server_name: str = "nano-banana-mcp"
+    server_name: str = "nanobanana-mcp-server"
     transport: str = "stdio"  # stdio or http
     host: str = "127.0.0.1"
     port: int = 9000

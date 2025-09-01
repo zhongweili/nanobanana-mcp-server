@@ -9,7 +9,7 @@ The Nano Banana MCP Server is a production-ready FastMCP server that provides AI
 ### Server Metadata
 ```json
 {
-  "name": "nano-banana-server",
+  "name": "nanobanana-mcp-server",
   "version": "1.0.0",
   "description": "Image generation & editing powered by Gemini 2.5 Flash Image",
   "transport": "stdio|http",
@@ -26,7 +26,7 @@ GEMINI_API_KEY=your_api_key_here
 LOG_LEVEL=INFO|DEBUG|WARNING|ERROR
 LOG_FORMAT=standard|json|detailed
 FASTMCP_TRANSPORT=stdio|http
-SERVER_NAME=nano-banana-server
+SERVER_NAME=nanobanana-mcp-server
 MASK_ERROR_DETAILS=false
 IMAGE_OUTPUT_DIR=output
 ```

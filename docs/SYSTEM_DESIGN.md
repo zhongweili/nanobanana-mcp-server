@@ -241,7 +241,7 @@ FASTMCP_MASK_ERRORS=true|false
 
 ```python
 mcp = FastMCP(
-    name="nano-banana-mcp",
+    name="nanobanana-mcp-server",
     instructions="Server description...",
     mask_error_details=True,  # Production security
 )
@@ -281,7 +281,7 @@ uv run python server.py
 uv run python server.py
 
 # Or via FastMCP CLI if available
-fastmcp run nano-banana-mcp
+fastmcp run nanobanana-mcp-server
 ```
 
 **HTTP Mode (Remote Access)**:
@@ -313,11 +313,11 @@ graph TB
 **Process Management**:
 ```bash
 # Using systemd service
-sudo systemctl start nano-banana-mcp
-sudo systemctl enable nano-banana-mcp
+sudo systemctl start nanobanana-mcp-server
+sudo systemctl enable nanobanana-mcp-server
 
 # Using PM2 or similar process manager
-pm2 start "uv run python server.py" --name nano-banana-mcp
+pm2 start "uv run python server.py" --name nanobanana-mcp-server
 ```
 
 **Production Features**:

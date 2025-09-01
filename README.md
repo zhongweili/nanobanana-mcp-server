@@ -31,7 +31,7 @@ pip install fastmcp
 
 # Clone the repository
 git clone https://github.com/nano-banana/mcp-server.git
-cd nanobanana-server
+cd nanobanana-mcp-server
 
 # Install with development dependencies
 pip install -e .[dev]
@@ -46,7 +46,7 @@ cp .env.example .env
 ```bash
 # Clone the repository
 git clone https://github.com/nano-banana/mcp-server.git
-cd nanobanana-server
+cd nanobanana-mcp-server
 
 # Create virtual environment (recommended)
 python -m venv venv
@@ -210,7 +210,7 @@ The project is optimized for FastMCP CLI development workflow:
 ```bash
 # 1. Clone and setup
 git clone <repository-url>
-cd nanobanana-server
+cd nanobanana-mcp-server
 
 # 2. Install FastMCP CLI
 pip install fastmcp
@@ -250,7 +250,7 @@ fastmcp project prepare fastmcp.json
 ## 📁 Project Structure
 
 ```
-nanobanana-server/
+nanobanana-mcp-server/
 ├── server.py              # Main entry point & factory function
 ├── fastmcp.json           # FastMCP CLI configuration
 ├── pyproject.toml         # Project configuration
@@ -362,11 +362,11 @@ CMD ["python", "server.py"]
 
 ```bash
 # Using systemd
-sudo systemctl start nano-banana-mcp
-sudo systemctl enable nano-banana-mcp
+sudo systemctl start nanobanana-mcp-server
+sudo systemctl enable nanobanana-mcp-server
 
 # Using PM2
-pm2 start "python server.py" --name nano-banana-mcp
+pm2 start "python server.py" --name nanobanana-mcp-server
 ```
 
 ## 📊 Monitoring
