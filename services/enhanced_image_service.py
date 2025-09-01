@@ -11,13 +11,17 @@ from fastmcp.utilities.types import Image as MCPImage
 from services.gemini_client import GeminiClient
 from services.files_api_service import FilesAPIService
 from services.image_database_service import ImageDatabaseService
-from utils.image_utils import create_thumbnail
+from utils.image_utils import create_thumbnail, validate_image_format
 from config.settings import GeminiConfig
+from config.constants import THUMBNAIL_SIZE, TEMP_FILE_SUFFIX
 from PIL import Image as PILImage
 import os
 import logging
+import mimetypes
+import base64
 from datetime import datetime
 import hashlib
+from io import BytesIO
 
 
 class EnhancedImageService:
@@ -239,21 +243,15 @@ class EnhancedImageService:
                 image_bytes = f.read()
 
             # Detect MIME type from file extension or content
-            import mimetypes
-
             mime_type, _ = mimetypes.guess_type(file_path)
             if not mime_type or not mime_type.startswith("image/"):
                 # Fallback to PNG if detection fails
                 mime_type = "image/png"
 
             # Validate image format
-            from utils.image_utils import validate_image_format
-
             validate_image_format(mime_type)
 
             # Convert to base64 for Gemini API (only internally, not in tool interface)
-            import base64
-
             base_image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
             # Create parts for Gemini API
@@ -313,16 +311,34 @@ class EnhancedImageService:
         filename = f"gen_{timestamp}_{response_index}_{image_index}_{image_hash}"
 
         full_path = os.path.join(self.out_dir, f"{filename}.{self.config.default_image_format}")
-        with open(full_path, "wb") as f:
-            f.write(image_bytes)
+        
+        # Ensure output directory exists
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        
+        # Write image file atomically using temporary file
+        temp_path = f"{full_path}{TEMP_FILE_SUFFIX}"
+        try:
+            with open(temp_path, "wb") as f:
+                f.write(image_bytes)
+            os.rename(temp_path, full_path)
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise ValueError(f"Failed to save image: {e}")
 
-        # Get image dimensions
-        with PILImage.open(full_path) as img:
-            width, height = img.size
+        # Get image dimensions directly from bytes to avoid extra file I/O
+        try:
+            with PILImage.open(BytesIO(image_bytes)) as img:
+                width, height = img.size
+        except Exception as e:
+            # Fallback to file-based approach if bytes approach fails
+            self.logger.warning(f"Using fallback image dimension detection: {e}")
+            with PILImage.open(full_path) as img:
+                width, height = img.size
 
-        # Step 4: M->>FS: create 256px thumbnail (JPEG)
+        # Step 4: M->>FS: create thumbnail (JPEG)
         thumb_path = os.path.join(self.out_dir, f"{filename}_thumb.jpeg")
-        create_thumbnail(full_path, thumb_path, size=256)
+        create_thumbnail(full_path, thumb_path, size=THUMBNAIL_SIZE)
 
         # Step 5-6: M->>F: files.upload -> F-->>M: { name:file_id, uri:file_uri }
         try:

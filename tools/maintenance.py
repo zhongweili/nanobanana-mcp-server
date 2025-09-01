@@ -261,8 +261,6 @@ def _format_full_cleanup_summary(result: dict, dry_run: bool) -> str:
 
 
 def _get_maintenance_service():
-    """Get the maintenance service instance (would be dependency injection in real app)."""
-    # This would be properly injected in a real implementation
+    """Get the maintenance service instance."""
     from services import get_maintenance_service
-
     return get_maintenance_service()
