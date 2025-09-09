@@ -20,17 +20,26 @@ A production-ready **Model Context Protocol (MCP)** server that provides AI-powe
 
 ### Installation
 
-Install the package using `uvx` (recommended) or `pip`:
+Option 1: From MCP Registry (Recommended)
+This server is available in the [Model Context Protocol Registry](https://registry.modelcontextprotocol.io/servers/io.github.zhongweili/nanobanana-mcp-server). Install it using your MCP client.
+
+mcp-name: io.github.zhongweili/nanobanana-mcp-server
+
+Option 2: Using `uvx`
 
 ```bash
-# Using uvx (recommended - no Python environment needed)
 uvx nanobanana-mcp-server@latest
+```
 
-# Using pip
+Option 3: Using `pip`
+
+```bash
 pip install nanobanana-mcp-server
 ```
 
 ## 🔧 Configuration
+
+##
 
 ### Claude Desktop
 
@@ -51,6 +60,7 @@ Add to your `claude_desktop_config.json`:
 ```
 
 **Configuration file locations:**
+
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
@@ -159,14 +169,17 @@ LOG_FORMAT=standard                        # standard, json, detailed
 ### Common Issues
 
 **"GEMINI_API_KEY not set"**
+
 - Add your API key to the MCP server configuration in your client
 - Get a free API key at [Google AI Studio](https://makersuite.google.com/app/apikey)
 
 **"Server failed to start"**
+
 - Ensure you're using the latest version: `uvx nanobanana-mcp-server@latest`
 - Check that your client supports MCP (Claude Desktop 0.10.0+)
 
 **"Permission denied" errors**
+
 - The server creates images in `~/nanobanana-images` by default
 - Ensure write permissions to your home directory
 
