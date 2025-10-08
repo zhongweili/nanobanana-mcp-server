@@ -1,4 +1,4 @@
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Literal
 from pydantic import Field
 from fastmcp import FastMCP, Context
 from fastmcp.tools.tool import ToolResult
@@ -26,8 +26,8 @@ def register_generate_image_tool(server: FastMCP):
             str,
             Field(
                 description="Clear, detailed image prompt. Include subject, composition, "
-                "action, location, style, and any text to render. Add 'Square image' "
-                "or '16:9' in the text to influence aspect ratio.",
+                "action, location, style, and any text to render. Use the aspect_ratio "
+                "parameter to pin a specific canvas shape when needed.",
                 min_length=1,
                 max_length=8192,
             ),
@@ -68,6 +68,13 @@ def register_generate_image_tool(server: FastMCP):
                 "Auto-detected based on input parameters if not specified."
             ),
         ] = "auto",
+        aspect_ratio: Annotated[
+            Optional[Literal["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]],
+            Field(
+                description="Optional output aspect ratio (e.g., '16:9'). "
+                "See docs for supported values: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9."
+            ),
+        ] = None,
         ctx: Context = None,
     ) -> ToolResult:
         """
@@ -97,7 +104,7 @@ def register_generate_image_tool(server: FastMCP):
                 input_image_paths = None
 
             logger.info(
-                f"Generate image request: prompt='{prompt[:50]}...', n={n}, paths={input_image_paths}"
+                f"Generate image request: prompt='{prompt[:50]}...', n={n}, paths={input_image_paths}, aspect_ratio={aspect_ratio}"
             )
 
             # Auto-detect mode based on inputs
@@ -153,6 +160,8 @@ def register_generate_image_tool(server: FastMCP):
             else:
                 # Generation mode (with optional input images for conditioning)
                 logger.info(f"Generate mode: creating new images")
+                if aspect_ratio:
+                    logger.info(f"Using aspect ratio override: {aspect_ratio}")
 
                 # Prepare input images by reading from file paths
                 input_images = None
@@ -189,6 +198,7 @@ def register_generate_image_tool(server: FastMCP):
                     negative_prompt=negative_prompt,
                     system_instruction=system_instruction,
                     input_images=input_images,
+                    aspect_ratio=aspect_ratio,
                 )
 
             # Create response with file paths and thumbnails
@@ -222,6 +232,8 @@ def register_generate_image_tool(server: FastMCP):
                     summary_lines.append(
                         f"🖼️ Conditioned on {len(input_image_paths)} input image(s): {', '.join(input_image_paths)}"
                     )
+                if aspect_ratio and detected_mode == "generate":
+                    summary_lines.append(f"📐 Aspect ratio: {aspect_ratio}")
 
                 # Add file information
                 result_label = "Edited Images" if detected_mode == "edit" else "Generated Images"
@@ -272,6 +284,7 @@ def register_generate_image_tool(server: FastMCP):
                 "input_image_count": len(input_image_paths)
                 if input_image_paths
                 else (1 if file_id else 0),
+                "aspect_ratio": aspect_ratio,
                 "source_file_id": file_id,
                 "edit_instruction": prompt if detected_mode == "edit" else None,
                 "generation_prompt": prompt if detected_mode == "generate" else None,

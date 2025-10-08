@@ -70,6 +70,7 @@ class EnhancedImageService:
         negative_prompt: Optional[str] = None,
         system_instruction: Optional[str] = None,
         input_images: Optional[List[Tuple[str, str]]] = None,
+        aspect_ratio: Optional[str] = None,
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Generate images following the complete workflow from workflows.md.
@@ -90,6 +91,7 @@ class EnhancedImageService:
             negative_prompt: Optional negative prompt
             system_instruction: Optional system instruction
             input_images: List of (base64, mime_type) tuples for input images
+            aspect_ratio: Optional aspect ratio string (e.g., "16:9")
 
         Returns:
             Tuple of (thumbnail_images, metadata_list)
@@ -125,13 +127,21 @@ class EnhancedImageService:
                     self.logger.debug(f"Generating image {i + 1}/{n}...")
 
                     # Step 1-2: M->>G: generateContent -> G-->>M: inline image bytes
-                    response = self.gemini_client.generate_content(contents)
+                    response = self.gemini_client.generate_content(
+                        contents, aspect_ratio=aspect_ratio
+                    )
                     images = self.gemini_client.extract_images(response)
 
                     for j, image_bytes in enumerate(images):
                         # Process each generated image through the full workflow
                         thumbnail_image, metadata = self._process_generated_image(
-                            image_bytes, i + 1, j + 1, prompt, negative_prompt, system_instruction
+                            image_bytes,
+                            i + 1,
+                            j + 1,
+                            prompt,
+                            negative_prompt,
+                            system_instruction,
+                            aspect_ratio,
                         )
 
                         all_thumbnail_images.append(thumbnail_image)
@@ -299,6 +309,7 @@ class EnhancedImageService:
         prompt: str,
         negative_prompt: Optional[str],
         system_instruction: Optional[str],
+        aspect_ratio: Optional[str],
     ) -> Tuple[MCPImage, Dict[str, Any]]:
         """
         Process a generated image through the complete workflow.
@@ -357,6 +368,7 @@ class EnhancedImageService:
             "prompt": prompt,
             "negative_prompt": negative_prompt,
             "system_instruction": system_instruction,
+            "aspect_ratio": aspect_ratio,
             "synthid_watermark": True,
         }
 
