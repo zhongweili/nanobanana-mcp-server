@@ -23,7 +23,7 @@ classifiers = [
 
 dependencies = [
     "fastmcp>=2.11.0",
-    "google-genai>=0.3.0",
+    "google-genai>=1.41.0",
     "pillow>=10.4.0",
     "python-dotenv>=1.0.1",
     "pydantic>=2.0.0",

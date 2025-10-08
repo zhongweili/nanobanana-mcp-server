@@ -49,11 +49,32 @@ class GeminiClient:
                 raise ValueError(f"Invalid image data at index {i}: {e}")
         return parts
 
-    def generate_content(self, contents: List, **kwargs) -> any:
+    def generate_content(
+        self,
+        contents: List,
+        response_modalities: Optional[List[str]] = None,
+        aspect_ratio: Optional[str] = None,
+        **kwargs,
+    ) -> any:
         """Generate content using Gemini API with error handling."""
         try:
             # Remove unsupported request_options parameter
             kwargs.pop("request_options", None)
+
+            config_obj = kwargs.pop("config", None)
+            if config_obj is not None:
+                self.logger.debug(
+                    "Using provided GenerateContentConfig; custom response_modalities/aspect_ratio ignored"
+                )
+                kwargs["config"] = config_obj
+            else:
+                config_kwargs = {
+                    "response_modalities": response_modalities or ["Image"],
+                }
+                if aspect_ratio:
+                    config_kwargs["image_config"] = gx.ImageConfig(aspect_ratio=aspect_ratio)
+
+                kwargs["config"] = gx.GenerateContentConfig(**config_kwargs)
 
             response = self.client.models.generate_content(
                 model=self.gemini_config.model_name, contents=contents, **kwargs

@@ -98,6 +98,7 @@ class FileImageService:
         negative_prompt: Optional[str] = None,
         system_instruction: Optional[str] = None,
         input_images: Optional[List[Tuple[str, str]]] = None,
+        aspect_ratio: Optional[str] = None,
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Generate images using Gemini API and save to file system.
@@ -108,6 +109,7 @@ class FileImageService:
             negative_prompt: Optional negative prompt
             system_instruction: Optional system instruction
             input_images: List of (base64, mime_type) tuples for input images
+            aspect_ratio: Optional aspect ratio string (e.g., "16:9")
 
         Returns:
             Tuple of (thumbnail_images, file_metadata_list)
@@ -146,7 +148,9 @@ class FileImageService:
                 try:
                     progress.update(20 + (i * 60 // n), f"Generating image {i + 1}/{n}...")
 
-                    response = self.gemini_client.generate_content(contents)
+                    response = self.gemini_client.generate_content(
+                        contents, aspect_ratio=aspect_ratio
+                    )
                     images = self.gemini_client.extract_images(response)
 
                     for j, image_bytes in enumerate(images):
@@ -180,6 +184,7 @@ class FileImageService:
                             "thumbnail_size_bytes": len(thumbnail_bytes),
                             "width": width,
                             "height": height,
+                            "aspect_ratio": aspect_ratio,
                             "thumbnail_width": thumb_w,
                             "thumbnail_height": thumb_h,
                             "mime_type": f"image/{self.gemini_config.default_image_format}",
