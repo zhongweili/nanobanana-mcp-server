@@ -18,6 +18,7 @@ Now featuring **Nano Banana Pro** - Google's latest and most powerful image gene
 - ⚡ **Gemini 2.5 Flash Image**: Fast generation (1024px) for rapid prototyping
 - 🏆 **Gemini 3 Pro Image**: High-quality up to 4K with Google Search grounding
 - 🤖 **Smart Model Selection**: Automatically chooses optimal model based on your prompt
+- 📐 **Aspect Ratio Control** ⭐ NEW: Specify output dimensions (1:1, 16:9, 9:16, 21:9, and more)
 - 📋 **Smart Templates**: Pre-built prompt templates for photography, design, and editing
 - 📁 **File Management**: Upload and manage files via Gemini Files API
 - 🔍 **Resource Discovery**: Browse templates and file metadata through MCP resources
@@ -239,7 +240,57 @@ generate_image(
     model_tier="pro",              # Pro excels at text rendering
     resolution="4k"                # Maximum clarity for text
 )
+
+# Control aspect ratio for different formats ⭐ NEW!
+generate_image(
+    prompt="Cinematic landscape at sunset",
+    aspect_ratio="21:9"            # Ultra-wide cinematic format
+)
+
+generate_image(
+    prompt="Instagram post about coffee",
+    aspect_ratio="1:1"             # Square format for social media
+)
+
+generate_image(
+    prompt="YouTube thumbnail design",
+    aspect_ratio="16:9"            # Standard video format
+)
+
+generate_image(
+    prompt="Mobile wallpaper of mountain vista",
+    aspect_ratio="9:16"            # Portrait format for phones
+)
 ```
+
+### 📐 Aspect Ratio Control ⭐ NEW!
+
+Control the output image dimensions with the `aspect_ratio` parameter:
+
+**Supported Aspect Ratios**:
+- `1:1` - Square (Instagram, profile pictures)
+- `4:3` - Classic photo format
+- `3:4` - Portrait orientation
+- `16:9` - Widescreen (YouTube thumbnails, presentations)
+- `9:16` - Mobile portrait (phone wallpapers, stories)
+- `21:9` - Ultra-wide cinematic
+- `2:3`, `3:2`, `4:5`, `5:4` - Various photo formats
+
+```python
+# Examples for different use cases
+generate_image(
+    prompt="Product showcase for e-commerce",
+    aspect_ratio="3:4",    # Portrait format, good for product pages
+    model_tier="pro"
+)
+
+generate_image(
+    prompt="Social media banner for Facebook",
+    aspect_ratio="16:9"    # Landscape banner format
+)
+```
+
+**Note**: Aspect ratio works with both Flash and Pro models. For best results with specific aspect ratios at high resolution, use the Pro model with `resolution="4k"`.
 
 ## ⚙️ Environment Variables
 
