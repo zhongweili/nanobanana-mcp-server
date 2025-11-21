@@ -65,6 +65,7 @@ class GeminiClient:
         self,
         contents: list,
         config: dict[str, Any] | None = None,
+        aspect_ratio: str | None = None,
         **kwargs
     ) -> any:
         """
@@ -73,6 +74,7 @@ class GeminiClient:
         Args:
             contents: Content list (text, images, etc.)
             config: Generation configuration dict (model-specific parameters)
+            aspect_ratio: Optional aspect ratio string (e.g., "16:9")
             **kwargs: Additional parameters
 
         Returns:
@@ -82,15 +84,31 @@ class GeminiClient:
             # Remove unsupported request_options parameter
             kwargs.pop("request_options", None)
 
-            # Filter parameters based on model capabilities
-            filtered_config = self._filter_parameters(config or {})
+            # Check for config conflict
+            config_obj = kwargs.pop("config", None)
+            if config_obj is not None:
+                if aspect_ratio or config:
+                    self.logger.warning(
+                        "Custom 'config' kwarg provided; ignoring aspect_ratio and config parameters"
+                    )
+                kwargs["config"] = config_obj
+            else:
+                # Filter parameters based on model capabilities
+                filtered_config = self._filter_parameters(config or {})
 
-            # Build generation config if we have filtered parameters
-            generation_config = None
-            if filtered_config:
-                # Note: The exact parameter names may vary by SDK version
-                # This implementation assumes SDK supports these parameters
-                generation_config = filtered_config
+                # Build generation config
+                config_kwargs = {
+                    "response_modalities": ["Image"],  # Force image-only responses
+                }
+
+                # Add aspect ratio if provided
+                if aspect_ratio:
+                    config_kwargs["image_config"] = gx.ImageConfig(aspect_ratio=aspect_ratio)
+
+                # Merge filtered config parameters
+                config_kwargs.update(filtered_config)
+
+                kwargs["config"] = gx.GenerateContentConfig(**config_kwargs)
 
             # Prepare kwargs
             api_kwargs = {
@@ -98,16 +116,12 @@ class GeminiClient:
                 "contents": contents,
             }
 
-            # Add config if present
-            if generation_config:
-                api_kwargs["config"] = generation_config
-
             # Merge additional kwargs
             api_kwargs.update(kwargs)
 
             self.logger.debug(
                 f"Calling Gemini API: model={self.gemini_config.model_name}, "
-                f"config={generation_config}"
+                f"config={api_kwargs.get('config')}"
             )
 
             response = self.client.models.generate_content(**api_kwargs)
