@@ -1,10 +1,23 @@
 # Nano Banana MCP Server 🍌
 
-A production-ready **Model Context Protocol (MCP)** server that provides AI-powered image generation capabilities through Google's **Gemini 2.5 Flash Image** model.
+A production-ready **Model Context Protocol (MCP)** server that provides AI-powered image generation capabilities through Google's **Gemini** models with intelligent model selection.
+
+## ⭐ NEW: Gemini 3 Pro Image Support! 🚀
+
+Now featuring **Nano Banana Pro** - Google's latest and most powerful image generation model:
+
+- 🏆 **Professional 4K Quality**: Generate stunning images up to 3840px resolution
+- 🌐 **Google Search Grounding**: Access real-world knowledge for factually accurate images
+- 🧠 **Advanced Reasoning**: Configurable thinking levels for complex compositions
+- 🎯 **Superior Text Rendering**: Crystal-clear text in images at high resolution
+- 🎨 **Enhanced Understanding**: Better context comprehension for complex prompts
 
 ## ✨ Features
 
-- 🎨 **AI Image Generation**: Create high-quality images from detailed text prompts
+- 🎨 **Multi-Model AI Image Generation**: Intelligent selection between Flash (speed) and Pro (quality) models
+- ⚡ **Gemini 2.5 Flash Image**: Fast generation (1024px) for rapid prototyping
+- 🏆 **Gemini 3 Pro Image**: High-quality up to 4K with Google Search grounding
+- 🤖 **Smart Model Selection**: Automatically chooses optimal model based on your prompt
 - 📋 **Smart Templates**: Pre-built prompt templates for photography, design, and editing
 - 📁 **File Management**: Upload and manage files via Gemini Files API
 - 🔍 **Resource Discovery**: Browse templates and file metadata through MCP resources
@@ -150,13 +163,94 @@ uvx nanobanana-mcp-server@latest
 python -m nanobanana_mcp_server.server
 ```
 
+## 🤖 Model Selection
+
+Nano Banana supports two Gemini models with intelligent automatic selection:
+
+### 🏆 Pro Model - Nano Banana Pro (Gemini 3 Pro Image) ⭐ NEW!
+**Google's latest and most advanced image generation model**
+
+- **Quality**: Professional-grade, production-ready
+- **Resolution**: Up to 4K (3840px) - highest available
+- **Speed**: ~5-8 seconds per image
+- **Special Features**:
+  - 🌐 **Google Search Grounding**: Leverages real-world knowledge for accurate, contextual images
+  - 🧠 **Advanced Reasoning**: Configurable thinking levels (LOW/HIGH) for complex compositions
+  - 📐 **Media Resolution Control**: Fine-tune vision processing detail (LOW/MEDIUM/HIGH/AUTO)
+  - 📝 **Superior Text Rendering**: Exceptional clarity for text-in-image generation
+  - 🎨 **Enhanced Context Understanding**: Better interpretation of complex, narrative prompts
+- **Best for**: Production assets, marketing materials, professional photography, high-fidelity outputs, images requiring text, factual accuracy
+- **Cost**: Higher per image (premium quality)
+
+### ⚡ Flash Model (Gemini 2.5 Flash Image)
+**Fast, reliable model for rapid iteration**
+
+- **Speed**: Very fast (2-3 seconds)
+- **Resolution**: Up to 1024px
+- **Quality**: High quality for everyday use
+- **Best for**: Rapid prototyping, iterations, high-volume generation, drafts, sketches
+- **Cost**: Lower per image
+
+### 🤖 Automatic Selection (Recommended)
+
+By default, the server uses **AUTO** mode which intelligently analyzes your prompt and requirements:
+
+**Pro Model Selected When**:
+- Quality keywords detected: "4K", "professional", "production", "high-res", "HD"
+- High resolution requested: `resolution="4k"` or `resolution="high"`
+- Google Search grounding enabled: `enable_grounding=True`
+- High thinking level requested: `thinking_level="HIGH"`
+- Multi-image conditioning with multiple input images
+
+**Flash Model Selected When**:
+- Speed keywords detected: "quick", "draft", "sketch", "rapid"
+- High-volume batch generation: `n > 2`
+- Standard or lower resolution requested
+- No special Pro features required
+
+### Usage Examples
+
+```python
+# Automatic selection (recommended)
+"Generate a professional 4K product photo"  # → Pro model (quality keywords + 4K)
+"Quick sketch of a cat"                     # → Flash model (speed keyword)
+"Create a diagram with clear text labels"   # → Pro model (text rendering)
+"Draft mockup for website hero section"     # → Flash model (draft keyword)
+
+# Explicit model selection
+generate_image(
+    prompt="A scenic landscape",
+    model_tier="flash"  # Force Flash model for speed
+)
+
+# Leverage Nano Banana Pro features
+generate_image(
+    prompt="Professional product photo of vintage camera on wooden desk",
+    model_tier="pro",              # Use Pro model
+    resolution="4k",               # 4K resolution (Pro-only)
+    thinking_level="HIGH",         # Enhanced reasoning
+    enable_grounding=True,         # Use Google Search for accuracy
+    media_resolution="HIGH"        # High-detail vision processing
+)
+
+# Pro model for high-quality text rendering
+generate_image(
+    prompt="Infographic showing 2024 market statistics with clear labels",
+    model_tier="pro",              # Pro excels at text rendering
+    resolution="4k"                # Maximum clarity for text
+)
+```
+
 ## ⚙️ Environment Variables
 
-Optional configuration:
+Configuration options:
 
 ```bash
 # Required
 GEMINI_API_KEY=your-gemini-api-key-here
+
+# Model Selection (optional)
+NANOBANANA_MODEL=auto  # Options: flash, pro, auto (default: auto)
 
 # Optional
 IMAGE_OUTPUT_DIR=/path/to/image/directory  # Default: ~/nanobanana-images

@@ -102,7 +102,7 @@ class ServerConfig:
 @dataclass
 class GeminiConfig:
     """Gemini API specific configuration."""
-    model_name: str = "gemini-2.5-flash-image-preview"
+    model_name: str = "gemini-2.5-flash-image"
     max_images_per_request: int = 4
     max_inline_image_size: int = 20 * 1024 * 1024  # 20MB
     default_image_format: str = "png"
