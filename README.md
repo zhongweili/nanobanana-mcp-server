@@ -35,7 +35,7 @@ Now featuring **Nano Banana Pro** - Google's latest and most powerful image gene
 ### Installation
 
 Option 1: From MCP Registry (Recommended)
-This server is available in the [Model Context Protocol Registry](https://registry.modelcontextprotocol.io/servers/io.github.zhongweili/nanobanana-mcp-server). Install it using your MCP client.
+This server is available in the [Model Context Protocol Registry](https://registry.modelcontextprotocol.io/?q=nanobanana). Search for "nanobanana" or use the MCP name below with your MCP client.
 
 mcp-name: io.github.zhongweili/nanobanana-mcp-server
 

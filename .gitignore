@@ -70,3 +70,5 @@ blog/
 .mcpregistry_registry_token
 
 specs/
+
+.playwright-mcp/
