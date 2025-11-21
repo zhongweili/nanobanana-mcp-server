@@ -1,19 +1,19 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
   "name": "io.github.zhongweili/nanobanana-mcp-server",
-  "description": "An MCP server that provides image generation and editing capabilities",
+  "description": "AI-powered image generation with Gemini 3 Pro (4K, grounding) and 2.5 Flash. Intelligent model selection, aspect ratio control, and smart templates.",
   "status": "active",
   "repository": {
     "url": "https://github.com/zhongweili/nanobanana-mcp-server",
     "source": "github"
   },
-  "version": "1.0.0",
+  "version": "0.2.0",
   "packages": [
     {
       "registry_type": "pypi",
       "registry_base_url": "https://pypi.org",
       "identifier": "nanobanana-mcp-server",
-      "version": "1.0.0",
+      "version": "0.2.0",
       "transport": {
         "type": "stdio"
       },
