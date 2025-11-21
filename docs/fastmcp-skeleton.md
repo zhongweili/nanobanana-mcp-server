@@ -131,7 +131,7 @@ def generate_image(
     responses = []
     for _ in range(n):
         resp = client.models.generate_content(
-            model="gemini-2.5-flash-image-preview",
+            model="gemini-2.5-flash-image",
             contents=contents,
         )
         responses.append(resp)
@@ -191,7 +191,7 @@ def edit_image(
     parts = [gx.Part.from_bytes(data=raw, mime_type=mime_type), instruction]
 
     resp = client.models.generate_content(
-        model="gemini-2.5-flash-image-preview",
+        model="gemini-2.5-flash-image",
         contents=parts,
     )
 

@@ -1,14 +1,17 @@
-from typing import Annotated, Optional, Literal
-from pydantic import Field
-from fastmcp import FastMCP, Context
-from fastmcp.tools.tool import ToolResult
-from mcp.types import TextContent
-from ..core.exceptions import ValidationError
-from ..config.constants import MAX_INPUT_IMAGES
+import base64
 import logging
 import mimetypes
-import base64
 import os
+from typing import Annotated, Literal
+
+from fastmcp import Context, FastMCP
+from fastmcp.tools.tool import ToolResult
+from mcp.types import TextContent
+from pydantic import Field
+
+from ..config.constants import MAX_INPUT_IMAGES
+from ..config.settings import ModelTier, ThinkingLevel
+from ..core.exceptions import ValidationError
 
 
 def register_generate_image_tool(server: FastMCP):
@@ -16,7 +19,7 @@ def register_generate_image_tool(server: FastMCP):
 
     @server.tool(
         annotations={
-            "title": "Generate or edit images (Gemini 2.5 Flash Image)",
+            "title": "Generate or edit images (Multi-Model: Flash & Pro)",
             "readOnlyHint": True,
             "openWorldHint": True,
         }
@@ -36,26 +39,26 @@ def register_generate_image_tool(server: FastMCP):
             int, Field(description="Requested image count (model may return fewer).", ge=1, le=4)
         ] = 1,
         negative_prompt: Annotated[
-            Optional[str],
+            str | None,
             Field(description="Things to avoid (style, objects, text).", max_length=1024),
         ] = None,
         system_instruction: Annotated[
-            Optional[str], Field(description="Optional system tone/style guidance.", max_length=512)
+            str | None, Field(description="Optional system tone/style guidance.", max_length=512)
         ] = None,
         input_image_path_1: Annotated[
-            Optional[str],
+            str | None,
             Field(description="Path to first input image for composition/conditioning"),
         ] = None,
         input_image_path_2: Annotated[
-            Optional[str],
+            str | None,
             Field(description="Path to second input image for composition/conditioning"),
         ] = None,
         input_image_path_3: Annotated[
-            Optional[str],
+            str | None,
             Field(description="Path to third input image for composition/conditioning"),
         ] = None,
         file_id: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 description="Files API file ID to use as input/edit source (e.g., 'files/abc123'). "
                 "If provided, this takes precedence over input_image_path_* parameters for the primary input."
@@ -68,14 +71,42 @@ def register_generate_image_tool(server: FastMCP):
                 "Auto-detected based on input parameters if not specified."
             ),
         ] = "auto",
+        model_tier: Annotated[
+            str | None,
+            Field(
+                description="Model tier: 'flash' (speed, 1024px), 'pro' (quality, up to 4K), or 'auto' (smart selection). "
+                "Default: 'auto' - automatically selects based on prompt quality/speed indicators."
+            ),
+        ] = "auto",
+        resolution: Annotated[
+            str | None,
+            Field(
+                description="Output resolution: 'high', '4k', '2k', '1k'. "
+                "4K and 2K only available with 'pro' model. Default: 'high'."
+            ),
+        ] = "high",
+        thinking_level: Annotated[
+            str | None,
+            Field(
+                description="Reasoning depth for Pro model: 'low' (faster), 'high' (better quality). "
+                "Only applies to Pro model. Default: 'high'."
+            ),
+        ] = "high",
+        enable_grounding: Annotated[
+            bool,
+            Field(
+                description="Enable Google Search grounding for factual accuracy (Pro model only). "
+                "Useful for real-world subjects. Default: true."
+            ),
+        ] = True,
         aspect_ratio: Annotated[
-            Optional[Literal["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]],
+            Literal["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"] | None,
             Field(
                 description="Optional output aspect ratio (e.g., '16:9'). "
                 "See docs for supported values: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9."
             ),
         ] = None,
-        ctx: Context = None,
+        _ctx: Context = None,
     ) -> ToolResult:
         """
         Generate new images or edit existing images using natural language instructions.
@@ -104,7 +135,8 @@ def register_generate_image_tool(server: FastMCP):
                 input_image_paths = None
 
             logger.info(
-                f"Generate image request: prompt='{prompt[:50]}...', n={n}, paths={input_image_paths}, aspect_ratio={aspect_ratio}"
+                f"Generate image request: prompt='{prompt[:50]}...', n={n}, "
+                f"paths={input_image_paths}, model_tier={model_tier}, aspect_ratio={aspect_ratio}"
             )
 
             # Auto-detect mode based on inputs
@@ -114,6 +146,42 @@ def register_generate_image_tool(server: FastMCP):
                     detected_mode = "edit"
                 else:
                     detected_mode = "generate"
+
+            # Parse model tier
+            try:
+                tier = ModelTier(model_tier) if model_tier else ModelTier.AUTO
+            except ValueError:
+                logger.warning(f"Invalid model_tier '{model_tier}', defaulting to AUTO")
+                tier = ModelTier.AUTO
+
+            # Validate thinking level for Pro model
+            try:
+                if thinking_level:
+                    _ = ThinkingLevel(thinking_level)  # Just validate
+            except ValueError:
+                logger.warning(f"Invalid thinking_level '{thinking_level}', defaulting to HIGH")
+                thinking_level = "high"
+
+            # Get model selector to determine which model to use
+            from ..services import get_model_selector
+            model_selector = get_model_selector()
+
+            # Select model based on prompt and parameters
+            selected_service, selected_tier = model_selector.select_model(
+                prompt=prompt,
+                requested_tier=tier,
+                n=n,
+                resolution=resolution,
+                input_images=input_image_paths,
+                thinking_level=thinking_level,
+                enable_grounding=enable_grounding
+            )
+
+            model_info = model_selector.get_model_info(selected_tier)
+            logger.info(
+                f"Selected {model_info['emoji']} {model_info['name']} "
+                f"({selected_tier.value}) for this request"
+            )
 
             # Validation
             if mode not in ["auto", "generate", "edit"]:
@@ -159,7 +227,7 @@ def register_generate_image_tool(server: FastMCP):
 
             else:
                 # Generation mode (with optional input images for conditioning)
-                logger.info(f"Generate mode: creating new images")
+                logger.info("Generate mode: creating new images")
                 if aspect_ratio:
                     logger.info(f"Using aspect ratio override: {aspect_ratio}")
 
@@ -186,7 +254,7 @@ def register_generate_image_tool(server: FastMCP):
                             logger.debug(f"Loaded input image: {path} ({mime_type})")
 
                         except Exception as e:
-                            raise ValidationError(f"Failed to load input image {path}: {e}")
+                            raise ValidationError(f"Failed to load input image {path}: {e}") from e
 
                     logger.info(f"Loaded {len(input_images)} input images from file paths")
 
@@ -218,9 +286,20 @@ def register_generate_image_tool(server: FastMCP):
 
                 # Build summary with mode-specific information
                 action_verb = "Edited" if detected_mode == "edit" else "Generated"
+                model_name = model_info["name"]
+                model_emoji = model_info["emoji"]
                 summary_lines = [
-                    f"✅ {action_verb} {len(metadata)} image(s) with Gemini 2.5 Flash Image."
+                    f"✅ {action_verb} {len(metadata)} image(s) with {model_emoji} {model_name}.",
+                    f"📊 **Model**: {selected_tier.value.upper()} tier"
                 ]
+
+                # Add Pro-specific information
+                if selected_tier == ModelTier.PRO:
+                    summary_lines.append(f"🧠 **Thinking Level**: {thinking_level}")
+                    summary_lines.append(f"📏 **Resolution**: {resolution}")
+                    if enable_grounding:
+                        summary_lines.append("🔍 **Grounding**: Enabled (Google Search)")
+                summary_lines.append("")  # Blank line
 
                 # Add source information based on mode and inputs
                 if detected_mode == "edit":
@@ -260,15 +339,15 @@ def register_generate_image_tool(server: FastMCP):
 
                     summary_lines.append(
                         f"  {i}. `{full_path}`\n"
-                        f"     📏 {width}×{height} • 💾 {size_mb}MB{extra_info}"
+                        f"     📏 {width}x{height} • 💾 {size_mb}MB{extra_info}"
                     )
 
                 summary_lines.append(
-                    f"\n🖼️ **Thumbnail previews shown below** (actual images saved to disk)"
+                    "\n🖼️ **Thumbnail previews shown below** (actual images saved to disk)"
                 )
                 full_summary = "\n".join(summary_lines)
 
-                content = [TextContent(type="text", text=full_summary)] + thumbnail_images
+                content = [TextContent(type="text", text=full_summary), *thumbnail_images]
             else:
                 # Fallback if no images generated
                 summary = "❌ No images were generated. Please check the logs for details."
@@ -276,6 +355,14 @@ def register_generate_image_tool(server: FastMCP):
 
             structured_content = {
                 "mode": detected_mode,
+                "model_tier": selected_tier.value,
+                "model_name": model_info["name"],
+                "model_id": model_info["model_id"],
+                "requested_tier": model_tier,
+                "auto_selected": tier == ModelTier.AUTO,
+                "thinking_level": thinking_level if selected_tier == ModelTier.PRO else None,
+                "resolution": resolution,
+                "grounding_enabled": enable_grounding if selected_tier == ModelTier.PRO else False,
                 "requested": n,
                 "returned": len(thumbnail_images),
                 "negative_prompt_applied": bool(negative_prompt),
