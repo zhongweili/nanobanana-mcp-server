@@ -30,6 +30,7 @@ class ImageService:
         negative_prompt: Optional[str] = None,
         system_instruction: Optional[str] = None,
         input_images: Optional[List[Tuple[str, str]]] = None,
+        aspect_ratio: Optional[str] = None,
         use_storage: bool = True,
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
@@ -41,6 +42,7 @@ class ImageService:
             negative_prompt: Optional negative prompt
             system_instruction: Optional system instruction
             input_images: List of (base64, mime_type) tuples for input images
+            aspect_ratio: Optional aspect ratio string (e.g., "16:9")
             use_storage: If True, store images and return resource links with thumbnails
 
         Returns:
@@ -82,7 +84,9 @@ class ImageService:
                 try:
                     progress.update(20 + (i * 60 // n), f"Generating image {i + 1}/{n}...")
 
-                    response = self.gemini_client.generate_content(contents)
+                    response = self.gemini_client.generate_content(
+                        contents, aspect_ratio=aspect_ratio
+                    )
                     images = self.gemini_client.extract_images(response)
 
                     for j, image_bytes in enumerate(images):
@@ -100,6 +104,7 @@ class ImageService:
                             "prompt": prompt,
                             "negative_prompt": negative_prompt,
                             "system_instruction": system_instruction,
+                            "aspect_ratio": aspect_ratio,
                         }
 
                         if use_storage and self.storage_service:
@@ -130,6 +135,7 @@ class ImageService:
                                 "thumbnail_size_bytes": stored_info.thumbnail_size_bytes,
                                 "width": stored_info.width,
                                 "height": stored_info.height,
+                                "aspect_ratio": aspect_ratio,
                                 "expires_at": stored_info.expires_at,
                                 "is_stored": True,
                                 "preview_mode": "thumbnail_with_resource_link",
