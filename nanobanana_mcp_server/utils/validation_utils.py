@@ -202,3 +202,36 @@ def validate_timeout_seconds(
 
     if timeout > max_timeout:
         raise ValidationError(f"Timeout must be at most {max_timeout} seconds")
+
+
+def validate_aspect_ratio_string(aspect_ratio: str) -> None:
+    """
+    Validate aspect ratio string format and supported values.
+
+    Validates that the aspect ratio string matches one of the values
+    supported by the Gemini API.
+
+    Args:
+        aspect_ratio: Aspect ratio string (e.g., "16:9", "4:3")
+
+    Raises:
+        ValidationError: If aspect ratio is invalid or unsupported
+
+    Supported aspect ratios:
+        1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9
+    """
+    if not isinstance(aspect_ratio, str):
+        raise ValidationError("Aspect ratio must be a string")
+
+    # Supported aspect ratios according to Gemini API documentation
+    # https://ai.google.dev/gemini-api/docs/image-generation#optional_configurations
+    SUPPORTED_ASPECT_RATIOS = [
+        "1:1", "2:3", "3:2", "3:4", "4:3",
+        "4:5", "5:4", "9:16", "16:9", "21:9"
+    ]
+
+    if aspect_ratio not in SUPPORTED_ASPECT_RATIOS:
+        raise ValidationError(
+            f"Unsupported aspect_ratio: '{aspect_ratio}'. "
+            f"Supported values: {', '.join(SUPPORTED_ASPECT_RATIOS)}"
+        )
