@@ -12,6 +12,10 @@ Now featuring **Nano Banana Pro** - Google's latest and most powerful image gene
 - 🎯 **Superior Text Rendering**: Crystal-clear text in images at high resolution
 - 🎨 **Enhanced Understanding**: Better context comprehension for complex prompts
 
+<a href="https://glama.ai/mcp/servers/@zhongweili/nanobanana-mcp-server">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@zhongweili/nanobanana-mcp-server/badge" alt="nanobanana-mcp-server MCP server" />
+</a>
+
 ## ✨ Features
 
 - 🎨 **Multi-Model AI Image Generation**: Intelligent selection between Flash (speed) and Pro (quality) models
