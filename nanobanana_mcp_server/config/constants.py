@@ -34,3 +34,20 @@ ERROR_MESSAGES = {
     "api_error": "Gemini API error: {details}",
     "unknown_error": "An unexpected error occurred: {details}",
 }
+
+# Authentication error messages
+AUTH_ERROR_MESSAGES = {
+    "vertex_ai_project_required": (
+        "Vertex AI authentication requires GCP_PROJECT_ID or "
+        "GOOGLE_CLOUD_PROJECT to be set."
+    ),
+    "api_key_required": (
+        "API Key authentication requires GEMINI_API_KEY or "
+        "GOOGLE_API_KEY to be set."
+    ),
+    "no_auth_configured": (
+        "No valid authentication configuration found.\n"
+        "API Key: Set GEMINI_API_KEY or GOOGLE_API_KEY\n"
+        "Vertex AI: Set GCP_PROJECT_ID (and optionally GCP_REGION)"
+    ),
+}

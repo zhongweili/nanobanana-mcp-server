@@ -57,7 +57,29 @@ pip install nanobanana-mcp-server
 
 ## 🔧 Configuration
 
-##
+## 🔧 Configuration
+
+### Authentication Methods
+
+Nano Banana supports two authentication methods via `NANOBANANA_AUTH_METHOD`:
+
+1. **API Key** (`api_key`): Uses `GEMINI_API_KEY`. Best for local development and simple deployments.
+2. **Vertex AI ADC** (`vertex_ai`): Uses Google Cloud Application Default Credentials. Best for production on Google Cloud (Cloud Run, GKE, GCE).
+3. **Automatic** (`auto`): Defaults to API Key if present, otherwise tries Vertex AI.
+
+#### 1. API Key Authentication (Default)
+Set `GEMINI_API_KEY` environment variable.
+
+#### 2. Vertex AI Authentication (Google Cloud)
+Required environment variables:
+- `NANOBANANA_AUTH_METHOD=vertex_ai` (or `auto`)
+- `GCP_PROJECT_ID=your-project-id`
+- `GCP_REGION=us-central1` (default)
+
+**Prerequisites**:
+- Enable Vertex AI API: `gcloud services enable aiplatform.googleapis.com`
+- Grant IAM Role: `roles/aiplatform.user` to the service account.
+
 
 ### Claude Desktop
 
@@ -301,8 +323,14 @@ generate_image(
 Configuration options:
 
 ```bash
-# Required
+# Authentication (Required)
+# Method 1: API Key
 GEMINI_API_KEY=your-gemini-api-key-here
+
+# Method 2: Vertex AI (Google Cloud)
+NANOBANANA_AUTH_METHOD=vertex_ai
+GCP_PROJECT_ID=your-project-id
+GCP_REGION=us-central1
 
 # Model Selection (optional)
 NANOBANANA_MODEL=auto  # Options: flash, pro, auto (default: auto)
