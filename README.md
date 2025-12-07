@@ -123,6 +123,27 @@ If you are running from source code, point to your local installation:
 }
 ```
 
+
+#### Option 3: Using Vertex AI (ADC)
+
+To authenticate with Google Cloud Application Default Credentials (instead of an API Key):
+
+```json
+{
+  "mcpServers": {
+    "nanobanana-adc": {
+      "command": "uvx",
+      "args": ["nanobanana-mcp-server@latest"],
+      "env": {
+        "NANOBANANA_AUTH_METHOD": "vertex_ai",
+        "GCP_PROJECT_ID": "your-project-id",
+        "GCP_REGION": "us-central1"
+      }
+    }
+  }
+}
+```
+
 **Configuration file locations:**
 
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
