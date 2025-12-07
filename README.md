@@ -57,8 +57,6 @@ pip install nanobanana-mcp-server
 
 ## 🔧 Configuration
 
-## 🔧 Configuration
-
 ### Authentication Methods
 
 Nano Banana supports two authentication methods via `NANOBANANA_AUTH_METHOD`:
@@ -83,6 +81,8 @@ Required environment variables:
 
 ### Claude Desktop
 
+#### Option 1: Using Published Server (Recommended)
+
 Add to your `claude_desktop_config.json`:
 
 ```json
@@ -93,6 +93,51 @@ Add to your `claude_desktop_config.json`:
       "args": ["nanobanana-mcp-server@latest"],
       "env": {
         "GEMINI_API_KEY": "your-gemini-api-key-here"
+      }
+    }
+  }
+}
+```
+
+#### Option 2: Using Local Source (Development)
+
+If you are running from source code, point to your local installation:
+
+```json
+{
+  "mcpServers": {
+    "nanobanana-local": {
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "-m",
+        "nanobanana_mcp_server.server"
+      ],
+      "cwd": "/absolute/path/to/nanobanana-mcp-server",
+      "env": {
+        "GEMINI_API_KEY": "your-gemini-api-key-here"
+      }
+    }
+  }
+}
+```
+
+
+#### Option 3: Using Vertex AI (ADC)
+
+To authenticate with Google Cloud Application Default Credentials (instead of an API Key):
+
+```json
+{
+  "mcpServers": {
+    "nanobanana-adc": {
+      "command": "uvx",
+      "args": ["nanobanana-mcp-server@latest"],
+      "env": {
+        "NANOBANANA_AUTH_METHOD": "vertex_ai",
+        "GCP_PROJECT_ID": "your-project-id",
+        "GCP_REGION": "us-central1"
       }
     }
   }
