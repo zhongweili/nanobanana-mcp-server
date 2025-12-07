@@ -37,7 +37,8 @@ cp .env.example .env
 ### Running the Server
 ```bash
 # FastMCP CLI (recommended for development)
-fastmcp dev nanobanana_mcp_server.server:create_app
+# Note: Use mcp_dev.py wrapper to resolve relative import issues
+fastmcp dev mcp_dev.py:app
 
 # Direct Python execution
 python -m nanobanana_mcp_server.server
@@ -111,7 +112,12 @@ The codebase follows a **layered architecture** with clear separation of concern
 - **`ProImageConfig`** ⭐: Pro model settings (4K resolution, thinking levels, media resolution, grounding)
 - **`ModelSelectionConfig`** ⭐: Automatic model selection strategy (quality/speed keywords, default tier)
 - Loads from `.env` file or environment variables
-- Validates required API keys at startup
+- Validates required auth credentials (API Key or Vertex AI settings) at startup
+
+**Authentication Configuration**:
+- `auth_method` (`auto`/`api_key`/`vertex_ai`): Controls authentication strategy
+- `gemini_api_key`: For API Key auth
+- `gcp_project_id` & `gcp_region`: For Vertex AI auth
 
 **Model Tier Enum** (`ModelTier`):
 - `FLASH`: Gemini 2.5 Flash Image (fast, 1024px)

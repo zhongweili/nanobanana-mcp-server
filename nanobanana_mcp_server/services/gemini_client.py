@@ -6,6 +6,7 @@ from google import genai
 from google.genai import types as gx
 
 from ..config.settings import (
+    AuthMethod,
     BaseModelConfig,
     FlashImageConfig,
     GeminiConfig,
@@ -31,8 +32,34 @@ class GeminiClient:
     def client(self) -> genai.Client:
         """Lazy initialization of Gemini client."""
         if self._client is None:
-            self._client = genai.Client(api_key=self.config.gemini_api_key)
+            if self.config.auth_method == AuthMethod.API_KEY:
+                self._client = genai.Client(api_key=self.config.gemini_api_key)
+                self._log_auth_method("API Key (Developer API)")
+            else:  # VERTEX_AI
+                self._client = genai.Client(
+                    vertexai=True,
+                    project=self.config.gcp_project_id,
+                    location=self.config.gcp_region
+                )
+                self._log_auth_method(f"ADC (Vertex AI - {self.config.gcp_region})")
         return self._client
+
+    def _log_auth_method(self, method: str):
+        """Log the authentication method in use."""
+        self.logger.info(f"Authentication method: {method}")
+
+    def validate_auth(self) -> bool:
+        """Validate authentication credentials (optional).
+
+        Note: This makes an API call, so use sparingly.
+        """
+        try:
+            # Lightweight API call
+            _ = self.client.models.list()
+            return True
+        except Exception as e:
+            self.logger.error(f"Authentication validation failed: {e}")
+            return False
 
     def create_image_parts(self, images_b64: list[str], mime_types: list[str]) -> list[gx.Part]:
         """Convert base64 images to Gemini Part objects."""

@@ -5,12 +5,22 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from ..core.exceptions import ADCConfigurationError
+from .constants import AUTH_ERROR_MESSAGES
+
 
 class ModelTier(str, Enum):
     """Model selection options."""
     FLASH = "flash"  # Speed-optimized (Gemini 2.5 Flash)
     PRO = "pro"      # Quality-optimized (Gemini 3 Pro)
     AUTO = "auto"    # Automatic selection
+
+
+class AuthMethod(Enum):
+    """Authentication method options."""
+    API_KEY = "api_key"      # Developer API + API Key
+    VERTEX_AI = "vertex_ai"  # Vertex AI API + ADC
+    AUTO = "auto"            # Auto-detect
 
 
 class ThinkingLevel(str, Enum):
@@ -30,7 +40,7 @@ class MediaResolution(str, Enum):
 class ServerConfig:
     """Server configuration settings."""
 
-    gemini_api_key: str
+    gemini_api_key: str | None = None
     server_name: str = "nanobanana-mcp-server"
     transport: str = "stdio"  # stdio or http
     host: str = "127.0.0.1"
@@ -38,15 +48,42 @@ class ServerConfig:
     mask_error_details: bool = False
     max_concurrent_requests: int = 10
     image_output_dir: str = ""
+    auth_method: AuthMethod = AuthMethod.AUTO
+    gcp_project_id: str | None = None
+    gcp_region: str = "us-central1"
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
         """Load configuration from environment variables."""
         load_dotenv()
 
+        # Auth method
+        auth_method_str = os.getenv("NANOBANANA_AUTH_METHOD", "auto").lower()
+        try:
+            auth_method = AuthMethod(auth_method_str)
+        except ValueError:
+            auth_method = AuthMethod.AUTO
+
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set")
+        gcp_project = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
+        gcp_region = os.getenv("GCP_REGION") or os.getenv("GOOGLE_CLOUD_LOCATION") or "us-central1"
+
+        # Validation logic
+        if auth_method == AuthMethod.API_KEY:
+            if not api_key:
+                raise ValueError(AUTH_ERROR_MESSAGES["api_key_required"])
+        
+        elif auth_method == AuthMethod.VERTEX_AI:
+            if not gcp_project:
+                raise ADCConfigurationError(AUTH_ERROR_MESSAGES["vertex_ai_project_required"])
+        
+        else:  # AUTO
+            if not api_key:
+                if not gcp_project:
+                    raise ValueError(AUTH_ERROR_MESSAGES["no_auth_configured"])
+                auth_method = AuthMethod.VERTEX_AI
+            else:
+                auth_method = AuthMethod.API_KEY
 
         # Handle image output directory
         output_dir = os.getenv("IMAGE_OUTPUT_DIR", "").strip()
@@ -60,6 +97,9 @@ class ServerConfig:
 
         return cls(
             gemini_api_key=api_key,
+            auth_method=auth_method,
+            gcp_project_id=gcp_project,
+            gcp_region=gcp_region,
             transport=os.getenv("FASTMCP_TRANSPORT", "stdio"),
             host=os.getenv("FASTMCP_HOST", "127.0.0.1"),
             port=int(os.getenv("FASTMCP_PORT", "9000")),
