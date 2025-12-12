@@ -38,6 +38,8 @@ class ServerConfig:
     mask_error_details: bool = False
     max_concurrent_requests: int = 10
     image_output_dir: str = ""
+    disable_thumbnails: bool = False
+    disable_database: bool = False
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
@@ -58,6 +60,10 @@ class ServerConfig:
         output_path = Path(output_dir).resolve()
         output_path.mkdir(parents=True, exist_ok=True)
 
+        # Parse boolean options for disabling thumbnails and database
+        disable_thumbnails = os.getenv("DISABLE_THUMBNAILS", "false").lower() in ("true", "1", "yes")
+        disable_database = os.getenv("DISABLE_DATABASE", "false").lower() in ("true", "1", "yes")
+
         return cls(
             gemini_api_key=api_key,
             transport=os.getenv("FASTMCP_TRANSPORT", "stdio"),
@@ -65,6 +71,8 @@ class ServerConfig:
             port=int(os.getenv("FASTMCP_PORT", "9000")),
             mask_error_details=os.getenv("FASTMCP_MASK_ERRORS", "false").lower() == "true",
             image_output_dir=str(output_path),
+            disable_thumbnails=disable_thumbnails,
+            disable_database=disable_database,
         )
 
 

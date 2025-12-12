@@ -311,6 +311,10 @@ NANOBANANA_MODEL=auto  # Options: flash, pro, auto (default: auto)
 IMAGE_OUTPUT_DIR=/path/to/image/directory  # Default: ~/nanobanana-images
 LOG_LEVEL=INFO                             # DEBUG, INFO, WARNING, ERROR
 LOG_FORMAT=standard                        # standard, json, detailed
+
+# Storage Options (optional)
+DISABLE_THUMBNAILS=false  # Set to true to disable thumbnail generation
+DISABLE_DATABASE=false    # Set to true to disable images.db tracking database
 ```
 
 ## 🐛 Troubleshooting

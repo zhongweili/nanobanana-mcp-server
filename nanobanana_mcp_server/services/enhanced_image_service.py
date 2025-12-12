@@ -12,7 +12,7 @@ from .gemini_client import GeminiClient
 from .files_api_service import FilesAPIService
 from .image_database_service import ImageDatabaseService
 from ..utils.image_utils import create_thumbnail, validate_image_format
-from ..config.settings import GeminiConfig
+from ..config.settings import GeminiConfig, ServerConfig
 from ..config.constants import THUMBNAIL_SIZE, TEMP_FILE_SUFFIX
 from PIL import Image as PILImage
 import os
@@ -42,6 +42,7 @@ class EnhancedImageService:
         db_service: ImageDatabaseService,
         config: GeminiConfig,
         out_dir: Optional[str] = None,
+        server_config: Optional[ServerConfig] = None,
     ):
         """
         Initialize enhanced image service.
@@ -52,6 +53,7 @@ class EnhancedImageService:
             db_service: Database service
             config: Gemini configuration
             out_dir: Output directory for images (defaults to OUT_DIR env var)
+            server_config: Server configuration (for disable_thumbnails option)
         """
         self.gemini_client = gemini_client
         self.files_api = files_api_service
@@ -59,6 +61,11 @@ class EnhancedImageService:
         self.config = config
         self.out_dir = out_dir or "output"
         self.logger = logging.getLogger(__name__)
+
+        # Check disable flags from server config
+        self.disable_thumbnails = server_config.disable_thumbnails if server_config else False
+        if self.disable_thumbnails:
+            self.logger.info("Thumbnail generation disabled via DISABLE_THUMBNAILS=true")
 
         # Ensure output directory exists
         os.makedirs(self.out_dir, exist_ok=True)
@@ -347,9 +354,11 @@ class EnhancedImageService:
             with PILImage.open(full_path) as img:
                 width, height = img.size
 
-        # Step 4: M->>FS: create thumbnail (JPEG)
-        thumb_path = os.path.join(self.out_dir, f"{filename}_thumb.jpeg")
-        create_thumbnail(full_path, thumb_path, size=THUMBNAIL_SIZE)
+        # Step 4: M->>FS: create thumbnail (JPEG) - skip if disabled
+        thumb_path = None
+        if not self.disable_thumbnails:
+            thumb_path = os.path.join(self.out_dir, f"{filename}_thumb.jpeg")
+            create_thumbnail(full_path, thumb_path, size=THUMBNAIL_SIZE)
 
         # Step 5-6: M->>F: files.upload -> F-->>M: { name:file_id, uri:file_uri }
         try:
@@ -374,7 +383,7 @@ class EnhancedImageService:
 
         record_id = self.db_service.upsert_image(
             path=full_path,
-            thumb_path=thumb_path,
+            thumb_path=thumb_path or "",
             mime_type=f"image/{self.config.default_image_format}",
             width=width,
             height=height,
@@ -385,11 +394,14 @@ class EnhancedImageService:
             metadata=generation_metadata,
         )
 
-        # Step 8: Create thumbnail MCP image for response
-        with open(thumb_path, "rb") as f:
-            thumb_data = f.read()
-
-        thumbnail_image = MCPImage(data=thumb_data, format="jpeg")
+        # Step 8: Create MCP image for response (thumbnail if available, otherwise full image)
+        if thumb_path and not self.disable_thumbnails:
+            with open(thumb_path, "rb") as f:
+                thumb_data = f.read()
+            thumbnail_image = MCPImage(data=thumb_data, format="jpeg")
+        else:
+            # Return full image when thumbnails are disabled
+            thumbnail_image = MCPImage(data=image_bytes, format=self.config.default_image_format)
 
         # Build complete metadata response
         metadata = {
@@ -426,9 +438,11 @@ class EnhancedImageService:
         with PILImage.open(full_path) as img:
             width, height = img.size
 
-        # Create 256px thumbnail (JPEG)
-        thumb_path = os.path.join(self.out_dir, f"{filename}_thumb.jpeg")
-        create_thumbnail(full_path, thumb_path, size=256)
+        # Create 256px thumbnail (JPEG) - skip if disabled
+        thumb_path = None
+        if not self.disable_thumbnails:
+            thumb_path = os.path.join(self.out_dir, f"{filename}_thumb.jpeg")
+            create_thumbnail(full_path, thumb_path, size=256)
 
         # Step 7-8: M->>F: files.upload -> F-->>M: { name:new_file_id, uri:new_file_uri }
         try:
@@ -450,7 +464,7 @@ class EnhancedImageService:
 
         record_id = self.db_service.upsert_image(
             path=full_path,
-            thumb_path=thumb_path,
+            thumb_path=thumb_path or "",
             mime_type=f"image/{self.config.default_image_format}",
             width=width,
             height=height,
@@ -461,11 +475,14 @@ class EnhancedImageService:
             metadata=edit_metadata,
         )
 
-        # Create thumbnail MCP image for response
-        with open(thumb_path, "rb") as f:
-            thumb_data = f.read()
-
-        thumbnail_image = MCPImage(data=thumb_data, format="jpeg")
+        # Create MCP image for response (thumbnail if available, otherwise full image)
+        if thumb_path and not self.disable_thumbnails:
+            with open(thumb_path, "rb") as f:
+                thumb_data = f.read()
+            thumbnail_image = MCPImage(data=thumb_data, format="jpeg")
+        else:
+            # Return full image when thumbnails are disabled
+            thumbnail_image = MCPImage(data=image_bytes, format=self.config.default_image_format)
 
         # Build complete metadata response
         metadata = {

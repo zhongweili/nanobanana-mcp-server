@@ -38,14 +38,20 @@ class ImageRecord(NamedTuple):
 class ImageDatabaseService:
     """Database service for tracking image metadata and Files API integration."""
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None, disabled: bool = False):
         """Initialize database service.
 
         Args:
             db_path: Path to SQLite database file. Defaults to OUT_DIR/images.db
+            disabled: If True, database operations are no-ops (no database file created)
         """
+        self.disabled = disabled
         self.db_path = db_path or os.path.join("output", "images.db")
         self.logger = logging.getLogger(__name__)
+
+        if self.disabled:
+            self.logger.info("Database service disabled via DISABLE_DATABASE=true")
+            return
 
         # Ensure directory exists
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
@@ -115,8 +121,11 @@ class ImageDatabaseService:
             metadata: Additional metadata as JSON
 
         Returns:
-            Database ID of the inserted/updated record
+            Database ID of the inserted/updated record (0 if disabled)
         """
+        if self.disabled:
+            return 0  # Return dummy ID when database is disabled
+
         metadata_json = json.dumps(metadata or {})
         now = datetime.now()
 
@@ -188,6 +197,8 @@ class ImageDatabaseService:
 
     def get_by_file_id(self, file_id: str) -> Optional[ImageRecord]:
         """Get image record by Files API file_id."""
+        if self.disabled:
+            return None
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute("SELECT * FROM images WHERE file_id = ?", (file_id,)).fetchone()
@@ -198,6 +209,8 @@ class ImageDatabaseService:
 
     def get_by_path(self, path: str) -> Optional[ImageRecord]:
         """Get image record by local file path."""
+        if self.disabled:
+            return None
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute("SELECT * FROM images WHERE path = ?", (path,)).fetchone()
@@ -208,6 +221,8 @@ class ImageDatabaseService:
 
     def get_by_id(self, record_id: int) -> Optional[ImageRecord]:
         """Get image record by database ID."""
+        if self.disabled:
+            return None
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute("SELECT * FROM images WHERE id = ?", (record_id,)).fetchone()
@@ -226,6 +241,9 @@ class ImageDatabaseService:
         Returns:
             List of image records with expired or soon-to-expire Files API entries
         """
+        if self.disabled:
+            return []
+
         cutoff_time = datetime.now() + timedelta(minutes=buffer_minutes)
 
         with sqlite3.connect(self.db_path) as conn:
@@ -258,6 +276,9 @@ class ImageDatabaseService:
         Returns:
             True if update was successful
         """
+        if self.disabled:
+            return True  # Pretend success when disabled
+
         if expires_at is None:
             expires_at = datetime.now() + timedelta(hours=48)
 
@@ -291,6 +312,9 @@ class ImageDatabaseService:
         Returns:
             True if update was successful
         """
+        if self.disabled:
+            return True  # Pretend success when disabled
+
         with sqlite3.connect(self.db_path) as conn:
             result = conn.execute(
                 """
@@ -311,6 +335,18 @@ class ImageDatabaseService:
 
     def get_usage_stats(self) -> Dict[str, Any]:
         """Get database usage statistics."""
+        if self.disabled:
+            return {
+                "total_images": 0,
+                "total_size_bytes": 0,
+                "total_size_mb": 0,
+                "uploaded_to_files_api": 0,
+                "edited_images": 0,
+                "files_api_expired": 0,
+                "files_api_active": 0,
+                "database_disabled": True,
+            }
+
         with sqlite3.connect(self.db_path) as conn:
             # Total records and sizes
             stats_row = conn.execute("""
@@ -351,6 +387,9 @@ class ImageDatabaseService:
         Returns:
             Number of records removed
         """
+        if self.disabled:
+            return 0
+
         removed_count = 0
 
         with sqlite3.connect(self.db_path) as conn:
