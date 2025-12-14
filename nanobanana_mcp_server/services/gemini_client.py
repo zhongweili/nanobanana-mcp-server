@@ -13,6 +13,7 @@ from ..config.settings import (
     ProImageConfig,
     ServerConfig,
 )
+from ..core.exceptions import AuthenticationError
 
 
 class GeminiClient:
@@ -33,6 +34,8 @@ class GeminiClient:
         """Lazy initialization of Gemini client."""
         if self._client is None:
             if self.config.auth_method == AuthMethod.API_KEY:
+                if not self.config.gemini_api_key:
+                    raise AuthenticationError("API key is required for API_KEY auth method")
                 self._client = genai.Client(api_key=self.config.gemini_api_key)
                 self._log_auth_method("API Key (Developer API)")
             else:  # VERTEX_AI

@@ -8,36 +8,36 @@ from nanobanana_mcp_server.core.exceptions import ADCConfigurationError
 
 class TestAuthConfiguration:
     def test_api_key_auth_requires_api_key(self):
-        """API Key認証時はAPI Keyが必須"""
-        # API Keyがない状態を作る
+        """API key is required when using api_key auth method."""
+        # Ensure no API key is set
         with patch.dict(os.environ, {}, clear=True):
             os.environ["NANOBANANA_AUTH_METHOD"] = "api_key"
             with pytest.raises(ValueError):
                 ServerConfig.from_env()
 
     def test_vertex_ai_auth_requires_project(self):
-        """Vertex AI認証時はプロジェクトIDが必須"""
+        """GCP project ID is required when using vertex_ai auth method."""
         with patch.dict(os.environ, {}, clear=True):
             os.environ["NANOBANANA_AUTH_METHOD"] = "vertex_ai"
             with pytest.raises(ADCConfigurationError):
                 ServerConfig.from_env()
 
     def test_auto_selects_api_key_when_available(self):
-        """AUTOモードでAPI Keyがあればそれを使用"""
+        """Auto mode selects api_key when GEMINI_API_KEY is available."""
         with patch.dict(os.environ, {}, clear=True):
             os.environ["GEMINI_API_KEY"] = "test-key"
             config = ServerConfig.from_env()
             assert config.auth_method == AuthMethod.API_KEY
 
     def test_auto_selects_vertex_ai_when_no_api_key(self):
-        """AUTOモードでAPI KeyがなければVertex AIを使用"""
+        """Auto mode falls back to vertex_ai when no API key is set."""
         with patch.dict(os.environ, {}, clear=True):
             os.environ["GCP_PROJECT_ID"] = "test-project"
             config = ServerConfig.from_env()
             assert config.auth_method == AuthMethod.VERTEX_AI
 
     def test_auto_fails_when_no_auth_configured(self):
-        """AUTOモードで認証情報がなければエラー"""
+        """Auto mode raises error when no auth credentials are configured."""
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(ValueError):
                 ServerConfig.from_env()
@@ -45,22 +45,22 @@ class TestAuthConfiguration:
 class TestGeminiClientAuth:
     @patch("google.genai.Client")
     def test_api_key_client_creation(self, mock_client_cls):
-        """API Key認証でクライアントが正しく作成される"""
+        """Client is created correctly with API key authentication."""
         config = ServerConfig(
             gemini_api_key="test-key",
             auth_method=AuthMethod.API_KEY
         )
         gemini_config = GeminiConfig()
         client = GeminiClient(config, gemini_config)
-        
-        # clientプロパティにアクセスして初期化
+
+        # Access client property to trigger initialization
         _ = client.client
         
         mock_client_cls.assert_called_with(api_key="test-key")
 
     @patch("google.genai.Client")
     def test_vertex_ai_client_creation(self, mock_client_cls):
-        """Vertex AI認証でクライアントが正しく作成される"""
+        """Client is created correctly with Vertex AI authentication."""
         config = ServerConfig(
             gemini_api_key=None,
             auth_method=AuthMethod.VERTEX_AI,
@@ -69,8 +69,8 @@ class TestGeminiClientAuth:
         )
         gemini_config = GeminiConfig()
         client = GeminiClient(config, gemini_config)
-        
-        # clientプロパティにアクセスして初期化
+
+        # Access client property to trigger initialization
         _ = client.client
         
         mock_client_cls.assert_called_with(
