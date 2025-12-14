@@ -31,7 +31,20 @@ class ImageProcessingError(NanoBananaError):
     pass
 
 
+
 class FileOperationError(NanoBananaError):
     """Raised when file operations fail."""
+
+    pass
+
+
+class AuthenticationError(NanoBananaError):
+    """Base exception for authentication errors."""
+
+    pass
+
+
+class ADCConfigurationError(AuthenticationError):
+    """Raised when ADC/Vertex AI configuration is invalid."""
 
     pass
