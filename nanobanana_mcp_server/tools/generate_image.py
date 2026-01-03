@@ -12,6 +12,7 @@ from pydantic import Field
 from ..config.constants import MAX_INPUT_IMAGES
 from ..config.settings import ModelTier, ThinkingLevel
 from ..core.exceptions import ValidationError
+from ..utils.validation_utils import validate_output_path
 
 
 def register_generate_image_tool(server: FastMCP):
@@ -106,7 +107,16 @@ def register_generate_image_tool(server: FastMCP):
                 "See docs for supported values: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9."
             ),
         ] = None,
-        _ctx: Context = None,
+        output_path: Annotated[
+            str | None,
+            Field(
+                description="Output path for generated image(s). "
+                "If a file path with extension (e.g., '/path/image.png'), saves directly to that path. "
+                "If a directory path (e.g., '/path/to/dir/'), uses default filename in that directory. "
+                "If None, uses IMAGE_OUTPUT_DIR environment variable or ~/nanobanana-images."
+            ),
+        ] = None,
+        _ctx: Context | None = None,
     ) -> ToolResult:
         """
         Generate new images or edit existing images using natural language instructions.
@@ -136,8 +146,12 @@ def register_generate_image_tool(server: FastMCP):
 
             logger.info(
                 f"Generate image request: prompt='{prompt[:50]}...', n={n}, "
-                f"paths={input_image_paths}, model_tier={model_tier}, aspect_ratio={aspect_ratio}"
+                f"paths={input_image_paths}, model_tier={model_tier}, aspect_ratio={aspect_ratio}, "
+                f"output_path={output_path}"
             )
+
+            # Validate output_path if provided
+            validate_output_path(output_path)
 
             # Auto-detect mode based on inputs
             detected_mode = mode
@@ -164,6 +178,7 @@ def register_generate_image_tool(server: FastMCP):
 
             # Get model selector to determine which model to use
             from ..services import get_model_selector
+
             model_selector = get_model_selector()
 
             # Select model based on prompt and parameters
@@ -174,7 +189,7 @@ def register_generate_image_tool(server: FastMCP):
                 resolution=resolution,
                 input_images=input_image_paths,
                 thinking_level=thinking_level,
-                enable_grounding=enable_grounding
+                enable_grounding=enable_grounding,
             )
 
             model_info = model_selector.get_model_info(selected_tier)
@@ -267,6 +282,7 @@ def register_generate_image_tool(server: FastMCP):
                     system_instruction=system_instruction,
                     input_images=input_images,
                     aspect_ratio=aspect_ratio,
+                    output_path=output_path,
                 )
 
             # Create response with file paths and thumbnails
@@ -290,7 +306,7 @@ def register_generate_image_tool(server: FastMCP):
                 model_emoji = model_info["emoji"]
                 summary_lines = [
                     f"✅ {action_verb} {len(metadata)} image(s) with {model_emoji} {model_name}.",
-                    f"📊 **Model**: {selected_tier.value.upper()} tier"
+                    f"📊 **Model**: {selected_tier.value.upper()} tier",
                 ]
 
                 # Add Pro-specific information
@@ -368,10 +384,11 @@ def register_generate_image_tool(server: FastMCP):
                 "negative_prompt_applied": bool(negative_prompt),
                 "used_input_images": bool(input_image_paths) or bool(file_id),
                 "input_image_paths": input_image_paths or [],
-                "input_image_count": len(input_image_paths)
-                if input_image_paths
-                else (1 if file_id else 0),
+                "input_image_count": (
+                    len(input_image_paths) if input_image_paths else (1 if file_id else 0)
+                ),
                 "aspect_ratio": aspect_ratio,
+                "output_path": output_path,
                 "source_file_id": file_id,
                 "edit_instruction": prompt if detected_mode == "edit" else None,
                 "generation_prompt": prompt if detected_mode == "generate" else None,
@@ -391,13 +408,15 @@ def register_generate_image_tool(server: FastMCP):
                     and m.get("files_api", {})
                     and m.get("files_api", {}).get("name")
                 ],
-                "parent_relationships": [
-                    (m.get("parent_file_id"), m.get("files_api", {}).get("name"))
-                    for m in metadata
-                    if m and isinstance(m, dict)
-                ]
-                if detected_mode == "edit"
-                else [],
+                "parent_relationships": (
+                    [
+                        (m.get("parent_file_id"), m.get("files_api", {}).get("name"))
+                        for m in metadata
+                        if m and isinstance(m, dict)
+                    ]
+                    if detected_mode == "edit"
+                    else []
+                ),
                 "total_size_mb": round(
                     sum(m.get("size_bytes", 0) for m in metadata if m and isinstance(m, dict))
                     / (1024 * 1024),
@@ -423,4 +442,5 @@ def register_generate_image_tool(server: FastMCP):
 def _get_enhanced_image_service():
     """Get the enhanced image service instance."""
     from ..services import get_enhanced_image_service
+
     return get_enhanced_image_service()

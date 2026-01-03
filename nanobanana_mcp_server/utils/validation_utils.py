@@ -1,10 +1,14 @@
 """Additional validation utilities beyond core validation."""
 
 from typing import Any, List, Optional, Union
+from pathlib import Path
 import re
 import os
 from urllib.parse import urlparse
 from ..core.exceptions import ValidationError
+
+# Supported image extensions for output path detection
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
 
 def validate_display_name(display_name: str) -> None:
@@ -226,8 +230,16 @@ def validate_aspect_ratio_string(aspect_ratio: str) -> None:
     # Supported aspect ratios according to Gemini API documentation
     # https://ai.google.dev/gemini-api/docs/image-generation#optional_configurations
     SUPPORTED_ASPECT_RATIOS = [
-        "1:1", "2:3", "3:2", "3:4", "4:3",
-        "4:5", "5:4", "9:16", "16:9", "21:9"
+        "1:1",
+        "2:3",
+        "3:2",
+        "3:4",
+        "4:3",
+        "4:5",
+        "5:4",
+        "9:16",
+        "16:9",
+        "21:9",
     ]
 
     if aspect_ratio not in SUPPORTED_ASPECT_RATIOS:
@@ -235,3 +247,123 @@ def validate_aspect_ratio_string(aspect_ratio: str) -> None:
             f"Unsupported aspect_ratio: '{aspect_ratio}'. "
             f"Supported values: {', '.join(SUPPORTED_ASPECT_RATIOS)}"
         )
+
+
+def resolve_output_path(
+    output_path: str | None,
+    default_dir: str,
+    default_filename: str,
+    image_index: int = 1,
+) -> str:
+    """
+    Resolve the final output path for a generated image.
+
+    Handles three modes:
+    1. None: Use default directory with generated filename
+    2. File path (with image extension): Use exact path, appending index for n > 1
+    3. Directory path: Use directory with generated filename
+
+    Args:
+        output_path: User-provided path (file, directory, or None)
+        default_dir: Default output directory from config
+        default_filename: Auto-generated filename (e.g., gen_20240102_1_1_abc123.png)
+        image_index: 1-based index for multiple images (used for file path mode)
+
+    Returns:
+        Absolute path where the image should be saved
+
+    Examples:
+        >>> resolve_output_path(None, "/default/dir", "gen.png")
+        '/default/dir/gen.png'
+
+        >>> resolve_output_path("/custom/image.png", "/default", "gen.png", 1)
+        '/custom/image.png'
+
+        >>> resolve_output_path("/custom/image.png", "/default", "gen.png", 2)
+        '/custom/image_2.png'
+
+        >>> resolve_output_path("/output/dir/", "/default", "gen.png")
+        '/output/dir/gen.png'
+    """
+    # Mode 1: None - use default directory with generated filename
+    if output_path is None:
+        default_path = Path(default_dir).resolve()
+        default_path.mkdir(parents=True, exist_ok=True)
+        return str(default_path / default_filename)
+
+    # Expand ~ to home directory
+    expanded_path = os.path.expanduser(output_path)
+    resolved = Path(expanded_path).resolve()
+
+    # Check if it looks like a file path (has a recognizable image extension)
+    if resolved.suffix.lower() in IMAGE_EXTENSIONS:
+        # Mode 2: Exact file path
+        resolved.parent.mkdir(parents=True, exist_ok=True)
+
+        # For multiple images, append index to filename
+        if image_index > 1:
+            stem = resolved.stem
+            suffix = resolved.suffix
+            return str(resolved.parent / f"{stem}_{image_index}{suffix}")
+
+        return str(resolved)
+
+    # Check if it's an existing directory OR ends with a separator
+    if resolved.is_dir() or output_path.endswith(os.sep) or output_path.endswith("/"):
+        # Mode 3: Directory path - use generated filename
+        resolved.mkdir(parents=True, exist_ok=True)
+        return str(resolved / default_filename)
+
+    # Ambiguous case: no extension, not an existing directory
+    # Treat as a file path (user wants this exact name, we'll add .png extension)
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+
+    # For multiple images without extension, append index
+    if image_index > 1:
+        return str(resolved) + f"_{image_index}"
+
+    return str(resolved)
+
+
+def validate_output_path(output_path: str | None) -> None:
+    """
+    Validate output path for basic issues.
+
+    Args:
+        output_path: User-provided output path
+
+    Raises:
+        ValidationError: If the path is invalid
+    """
+    if output_path is None:
+        return
+
+    # Check for empty string
+    if not output_path.strip():
+        raise ValidationError("output_path cannot be an empty string")
+
+    # Expand and resolve the path
+    expanded = os.path.expanduser(output_path)
+    resolved = Path(expanded).resolve()
+
+    # Check if parent directory exists or can be created
+    # We don't create it here, just validate it's not impossible
+    parent = resolved.parent
+    if not parent.exists():
+        # Check if any ancestor exists (to verify the path is valid)
+        current = parent
+        while current != current.parent:  # Stop at root
+            if current.exists():
+                break
+            current = current.parent
+        else:
+            # We got to root without finding an existing ancestor
+            # This is actually fine - we'll create the directories
+            pass
+
+    # Check for obviously problematic paths
+    path_str = str(resolved).lower()
+    dangerous_paths = ["/bin", "/sbin", "/usr/bin", "/usr/sbin", "/etc", "/var/log"]
+    for dangerous in dangerous_paths:
+        if path_str.startswith(dangerous):
+            raise ValidationError(f"Cannot write to system directory: {dangerous}")

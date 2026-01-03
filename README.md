@@ -66,18 +66,21 @@ Nano Banana supports two authentication methods via `NANOBANANA_AUTH_METHOD`:
 3. **Automatic** (`auto`): Defaults to API Key if present, otherwise tries Vertex AI.
 
 #### 1. API Key Authentication (Default)
+
 Set `GEMINI_API_KEY` environment variable.
 
 #### 2. Vertex AI Authentication (Google Cloud)
+
 Required environment variables:
+
 - `NANOBANANA_AUTH_METHOD=vertex_ai` (or `auto`)
 - `GCP_PROJECT_ID=your-project-id`
 - `GCP_REGION=us-central1` (default)
 
 **Prerequisites**:
+
 - Enable Vertex AI API: `gcloud services enable aiplatform.googleapis.com`
 - Grant IAM Role: `roles/aiplatform.user` to the service account.
-
 
 ### Claude Desktop
 
@@ -108,12 +111,7 @@ If you are running from source code, point to your local installation:
   "mcpServers": {
     "nanobanana-local": {
       "command": "uv",
-      "args": [
-        "run",
-        "python",
-        "-m",
-        "nanobanana_mcp_server.server"
-      ],
+      "args": ["run", "python", "-m", "nanobanana_mcp_server.server"],
       "cwd": "/absolute/path/to/nanobanana-mcp-server",
       "env": {
         "GEMINI_API_KEY": "your-gemini-api-key-here"
@@ -122,7 +120,6 @@ If you are running from source code, point to your local installation:
   }
 }
 ```
-
 
 #### Option 3: Using Vertex AI (ADC)
 
@@ -240,6 +237,7 @@ python -m nanobanana_mcp_server.server
 Nano Banana supports two Gemini models with intelligent automatic selection:
 
 ### 🏆 Pro Model - Nano Banana Pro (Gemini 3 Pro Image) ⭐ NEW!
+
 **Google's latest and most advanced image generation model**
 
 - **Quality**: Professional-grade, production-ready
@@ -255,6 +253,7 @@ Nano Banana supports two Gemini models with intelligent automatic selection:
 - **Cost**: Higher per image (premium quality)
 
 ### ⚡ Flash Model (Gemini 2.5 Flash Image)
+
 **Fast, reliable model for rapid iteration**
 
 - **Speed**: Very fast (2-3 seconds)
@@ -268,6 +267,7 @@ Nano Banana supports two Gemini models with intelligent automatic selection:
 By default, the server uses **AUTO** mode which intelligently analyzes your prompt and requirements:
 
 **Pro Model Selected When**:
+
 - Quality keywords detected: "4K", "professional", "production", "high-res", "HD"
 - High resolution requested: `resolution="4k"` or `resolution="high"`
 - Google Search grounding enabled: `enable_grounding=True`
@@ -275,6 +275,7 @@ By default, the server uses **AUTO** mode which intelligently analyzes your prom
 - Multi-image conditioning with multiple input images
 
 **Flash Model Selected When**:
+
 - Speed keywords detected: "quick", "draft", "sketch", "rapid"
 - High-volume batch generation: `n > 2`
 - Standard or lower resolution requested
@@ -334,11 +335,12 @@ generate_image(
 )
 ```
 
-### 📐 Aspect Ratio Control ⭐ NEW!
+### 📐 Aspect Ratio Control
 
 Control the output image dimensions with the `aspect_ratio` parameter:
 
 **Supported Aspect Ratios**:
+
 - `1:1` - Square (Instagram, profile pictures)
 - `4:3` - Classic photo format
 - `3:4` - Portrait orientation
@@ -362,6 +364,68 @@ generate_image(
 ```
 
 **Note**: Aspect ratio works with both Flash and Pro models. For best results with specific aspect ratios at high resolution, use the Pro model with `resolution="4k"`.
+
+### 📁 Output Path Control ⭐ NEW!
+
+Control where generated images are saved with the `output_path` parameter:
+
+**Three modes of operation:**
+
+1. **Specific file path** - Save to an exact file location:
+
+```python
+generate_image(
+    prompt="A beautiful sunset",
+    output_path="/path/to/sunset.png"  # Exact file location
+)
+```
+
+2. **Directory path** - Use auto-generated filename in a specific directory:
+
+```python
+generate_image(
+    prompt="Product photo",
+    output_path="/path/to/products/"  # Trailing slash indicates directory
+)
+```
+
+3. **Default location** - Uses IMAGE_OUTPUT_DIR or ~/nanobanana-images:
+
+```python
+generate_image(
+    prompt="Random image"
+    # output_path defaults to None
+)
+```
+
+**Multiple images (n > 1):**
+When generating multiple images with a file path, images are automatically numbered:
+
+- First image: `/path/to/image.png`
+- Second image: `/path/to/image_2.png`
+- Third image: `/path/to/image_3.png`
+
+**Precedence Rules:**
+
+1. `output_path` parameter (if provided) - highest priority
+2. `IMAGE_OUTPUT_DIR` environment variable
+3. `~/nanobanana-images` (default fallback)
+
+```python
+# Save to specific location with Pro model
+generate_image(
+    prompt="Professional headshot",
+    model_tier="pro",
+    output_path="/Users/me/photos/headshot.png"
+)
+
+# Save multiple images to a directory
+generate_image(
+    prompt="Product variations",
+    n=4,
+    output_path="/path/to/products/"  # Each gets unique filename
+)
+```
 
 ## ⚙️ Environment Variables
 
