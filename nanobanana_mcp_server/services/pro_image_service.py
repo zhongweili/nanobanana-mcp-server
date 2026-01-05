@@ -129,17 +129,14 @@ class ProImageService:
                     )
 
                     # Build generation config for Pro model
+                    # Note: thinking_level is NOT supported by gemini-3-pro-image-preview
+                    # Resolution is passed and mapped to image_size in gemini_client
                     gen_config = {
-                        "thinking_level": thinking_level.value,
+                        "resolution": resolution,  # Will be mapped to image_size (1K, 2K, 4K)
                     }
 
-                    # Add Pro-specific parameters
-                    if self.config.supports_media_resolution:
-                        gen_config["media_resolution"] = media_resolution.value
-
-                    # Note: Grounding is controlled via prompt/system instruction
-                    # The API may not expose enable_grounding as a direct parameter
-                    # depending on SDK version
+                    # Grounding is controlled via prompt/system instruction
+                    # not as a direct API parameter
 
                     response = self.gemini_client.generate_content(
                         contents,
@@ -217,8 +214,8 @@ class ProImageService:
 
                 except Exception as e:
                     self.logger.error(f"Failed to generate Pro image {i + 1}: {e}")
-                    # Continue with other images rather than failing completely
-                    continue
+                    # Re-raise to see the actual error
+                    raise
 
             progress.update(100, f"Generated {len(all_images)} high-quality image(s)")
 
