@@ -126,16 +126,37 @@ class GeminiClient:
                 # Filter parameters based on model capabilities
                 filtered_config = self._filter_parameters(config or {})
 
-                # Build generation config
+                # Build generation config - use TEXT,IMAGE for Pro model compatibility
                 config_kwargs = {
-                    "response_modalities": ["Image"],  # Force image-only responses
+                    "response_modalities": ["TEXT", "IMAGE"],
                 }
 
-                # Add aspect ratio if provided
+                # Build ImageConfig with aspect_ratio and image_size
+                image_config_kwargs = {}
                 if aspect_ratio:
-                    config_kwargs["image_config"] = gx.ImageConfig(aspect_ratio=aspect_ratio)
+                    image_config_kwargs["aspect_ratio"] = aspect_ratio
 
-                # Merge filtered config parameters
+                # Map resolution to image_size for Pro model
+                resolution = config.get("resolution") if config else None
+                if resolution:
+                    # Map resolution names to API image_size values
+                    resolution_map = {
+                        "4k": "4K",
+                        "2k": "2K",
+                        "1k": "1K",
+                        "high": "1K",  # Default high to 1K
+                    }
+                    image_size = resolution_map.get(resolution.lower(), "1K")
+                    image_config_kwargs["image_size"] = image_size
+                    self.logger.info(f"Setting image_size={image_size} for resolution={resolution}")
+
+                # Add output mime type
+                image_config_kwargs["output_mime_type"] = "image/png"
+
+                if image_config_kwargs:
+                    config_kwargs["image_config"] = gx.ImageConfig(**image_config_kwargs)
+
+                # Merge filtered config parameters (excluding image_config related ones)
                 config_kwargs.update(filtered_config)
 
                 kwargs["config"] = gx.GenerateContentConfig(**config_kwargs)
@@ -184,25 +205,13 @@ class GeminiClient:
             if param in config:
                 filtered[param] = config[param]
 
-        # Pro-specific parameters
+        # Pro-specific parameters - NOTE: thinking_level is NOT supported by gemini-3-pro-image-preview
         if isinstance(self.gemini_config, ProImageConfig):
-            # Thinking level (Pro only)
+            # Resolution is handled via ImageConfig.image_size, not here
+            # Grounding is controlled via prompt/system instructions
+            # thinking_level is NOT available for this model
             if "thinking_level" in config:
-                filtered["thinking_level"] = config["thinking_level"]
-
-            # Media resolution (Pro only)
-            if "media_resolution" in config:
-                filtered["media_resolution"] = config["media_resolution"]
-
-            # Output resolution hints (may not be directly supported by API)
-            if "output_resolution" in config:
-                # This might need to be encoded in the prompt instead
-                self.logger.debug(
-                    f"Output resolution requested: {config['output_resolution']}"
-                )
-
-            # Note: enable_grounding may be controlled via system instructions
-            # rather than as a direct API parameter in some SDK versions
+                self.logger.info("Note: thinking_level is not supported by gemini-3-pro-image-preview, ignoring")
 
         else:
             # Flash model - warn if Pro parameters are used
