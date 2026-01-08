@@ -378,8 +378,8 @@ class EnhancedImageService:
 
         # Step 4: M->>FS: create thumbnail (JPEG)
         # Derive thumbnail path from the full_path, placing it alongside the image
-        full_path_obj = os.path.splitext(full_path)
-        thumb_path = f"{full_path_obj[0]}_thumb.jpeg"
+        path_stem, _ = os.path.splitext(full_path)
+        thumb_path = f"{path_stem}_thumb.jpeg"
         create_thumbnail(full_path, thumb_path, size=THUMBNAIL_SIZE)
 
         # Step 5-6: M->>F: files.upload -> F-->>M: { name:file_id, uri:file_uri }

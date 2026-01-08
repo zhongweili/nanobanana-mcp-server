@@ -315,7 +315,7 @@ def resolve_output_path(
         return str(resolved / default_filename)
 
     # Ambiguous case: no extension, not an existing directory
-    # Treat as a file path (user wants this exact name, we'll add .png extension)
+    # Treat as a file path - user wants this exact name without extension
     resolved.parent.mkdir(parents=True, exist_ok=True)
 
     # For multiple images without extension, append index
