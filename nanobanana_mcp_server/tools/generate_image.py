@@ -275,15 +275,34 @@ def register_generate_image_tool(server: FastMCP):
 
                 # Generate images following workflows.md pattern:
                 # M->G->FS->F->D (save full-res, create thumbnail, upload to Files API, track in DB)
-                thumbnail_images, metadata = enhanced_image_service.generate_images(
-                    prompt=prompt,
-                    n=n,
-                    negative_prompt=negative_prompt,
-                    system_instruction=system_instruction,
-                    input_images=input_images,
-                    aspect_ratio=aspect_ratio,
-                    output_path=output_path,
-                )
+                # Route to correct service based on selected model tier
+                if selected_tier == ModelTier.PRO:
+                    # Use Pro service for high-quality generation
+                    # Note: Pro service doesn't support aspect_ratio or output_path yet
+                    logger.info(f"Using PRO model: {model_info['model_id']}")
+                    thumbnail_images, metadata = selected_service.generate_images(
+                        prompt=prompt,
+                        n=n,
+                        resolution=resolution,
+                        thinking_level=ThinkingLevel(thinking_level) if thinking_level else None,
+                        enable_grounding=enable_grounding,
+                        negative_prompt=negative_prompt,
+                        system_instruction=system_instruction,
+                        input_images=input_images,
+                        use_storage=True,
+                    )
+                else:
+                    # Use Flash service (via enhanced_image_service) for speed
+                    logger.info(f"Using FLASH model: {model_info['model_id']}")
+                    thumbnail_images, metadata = enhanced_image_service.generate_images(
+                        prompt=prompt,
+                        n=n,
+                        negative_prompt=negative_prompt,
+                        system_instruction=system_instruction,
+                        input_images=input_images,
+                        aspect_ratio=aspect_ratio,
+                        output_path=output_path,
+                    )
 
             # Create response with file paths and thumbnails
             if metadata:
