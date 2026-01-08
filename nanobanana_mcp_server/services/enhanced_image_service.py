@@ -12,6 +12,7 @@ from .gemini_client import GeminiClient
 from .files_api_service import FilesAPIService
 from .image_database_service import ImageDatabaseService
 from ..utils.image_utils import create_thumbnail, validate_image_format
+from ..utils.validation_utils import resolve_output_path
 from ..config.settings import GeminiConfig
 from ..config.constants import THUMBNAIL_SIZE, TEMP_FILE_SUFFIX
 from PIL import Image as PILImage
@@ -71,6 +72,7 @@ class EnhancedImageService:
         system_instruction: Optional[str] = None,
         input_images: Optional[List[Tuple[str, str]]] = None,
         aspect_ratio: Optional[str] = None,
+        output_path: Optional[str] = None,
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Generate images following the complete workflow from workflows.md.
@@ -92,6 +94,9 @@ class EnhancedImageService:
             system_instruction: Optional system instruction
             input_images: List of (base64, mime_type) tuples for input images
             aspect_ratio: Optional aspect ratio string (e.g., "16:9")
+            output_path: Optional output path. If a file path with extension,
+                saves directly to that path. If a directory path, uses default
+                filename in that directory. If None, uses the configured out_dir.
 
         Returns:
             Tuple of (thumbnail_images, metadata_list)
@@ -133,6 +138,9 @@ class EnhancedImageService:
                     images = self.gemini_client.extract_images(response)
 
                     for j, image_bytes in enumerate(images):
+                        # Calculate overall image index for output_path naming
+                        overall_index = (i * len(images)) + j + 1
+
                         # Process each generated image through the full workflow
                         thumbnail_image, metadata = self._process_generated_image(
                             image_bytes,
@@ -142,6 +150,8 @@ class EnhancedImageService:
                             negative_prompt,
                             system_instruction,
                             aspect_ratio,
+                            output_path=output_path,
+                            image_index_for_path=overall_index,
                         )
 
                         all_thumbnail_images.append(thumbnail_image)
@@ -310,22 +320,41 @@ class EnhancedImageService:
         negative_prompt: Optional[str],
         system_instruction: Optional[str],
         aspect_ratio: Optional[str],
+        output_path: Optional[str] = None,
+        image_index_for_path: int = 1,
     ) -> Tuple[MCPImage, Dict[str, Any]]:
         """
         Process a generated image through the complete workflow.
 
         Steps 3-8 from workflows.md generation sequence.
+
+        Args:
+            image_bytes: Raw image bytes from Gemini API
+            response_index: Index of the API response (1-based)
+            image_index: Index of image within the response (1-based)
+            prompt: The generation prompt
+            negative_prompt: Optional negative prompt used
+            system_instruction: Optional system instruction used
+            aspect_ratio: Optional aspect ratio used
+            output_path: Optional user-specified output path
+            image_index_for_path: Overall 1-based index for multi-image output path naming
         """
         # Step 3: M->>FS: save full-res image
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         image_hash = hashlib.md5(image_bytes).hexdigest()[:8]
-        filename = f"gen_{timestamp}_{response_index}_{image_index}_{image_hash}"
+        default_filename = f"gen_{timestamp}_{response_index}_{image_index}_{image_hash}.{self.config.default_image_format}"
 
-        full_path = os.path.join(self.out_dir, f"{filename}.{self.config.default_image_format}")
-        
+        # Resolve the output path using the utility function
+        full_path = resolve_output_path(
+            output_path=output_path,
+            default_dir=self.out_dir,
+            default_filename=default_filename,
+            image_index=image_index_for_path,
+        )
+
         # Ensure output directory exists
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
-        
+
         # Write image file atomically using temporary file
         temp_path = f"{full_path}{TEMP_FILE_SUFFIX}"
         try:
@@ -348,7 +377,9 @@ class EnhancedImageService:
                 width, height = img.size
 
         # Step 4: M->>FS: create thumbnail (JPEG)
-        thumb_path = os.path.join(self.out_dir, f"{filename}_thumb.jpeg")
+        # Derive thumbnail path from the full_path, placing it alongside the image
+        path_stem, _ = os.path.splitext(full_path)
+        thumb_path = f"{path_stem}_thumb.jpeg"
         create_thumbnail(full_path, thumb_path, size=THUMBNAIL_SIZE)
 
         # Step 5-6: M->>F: files.upload -> F-->>M: { name:file_id, uri:file_uri }
