@@ -66,7 +66,9 @@ class ServerConfig:
 
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         gcp_project = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
-        gcp_region = os.getenv("GCP_REGION") or os.getenv("GOOGLE_CLOUD_LOCATION") or "us-central1"
+        # Default to "global" for gemini-3-pro-image-preview compatibility
+        # Users can override via GCP_REGION or GOOGLE_CLOUD_LOCATION env vars
+        gcp_region = os.getenv("GCP_REGION") or os.getenv("GOOGLE_CLOUD_LOCATION") or "global"
 
         # Validation logic
         if auth_method == AuthMethod.API_KEY:
