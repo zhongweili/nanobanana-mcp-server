@@ -105,13 +105,12 @@ class TestGeminiClientAspectRatio:
                 aspect_ratio="16:9"
             )
 
-            # Verify ImageConfig was called with aspect_ratio and output_mime_type
+            # Verify ImageConfig was called with aspect_ratio
             call_kwargs = mock_gx.ImageConfig.call_args[1]
             assert call_kwargs.get('aspect_ratio') == "16:9"
-            assert call_kwargs.get('output_mime_type') == "image/png"
 
-    def test_aspect_ratio_none_creates_image_config_without_aspect_ratio(self, gemini_client):
-        """Test that aspect_ratio=None creates ImageConfig with just output_mime_type."""
+    def test_aspect_ratio_none_skips_image_config(self, gemini_client):
+        """Test that aspect_ratio=None skips ImageConfig creation."""
         with patch('nanobanana_mcp_server.services.gemini_client.gx') as mock_gx:
             mock_gx.GenerateContentConfig = Mock()
             mock_gx.ImageConfig = Mock()
@@ -119,11 +118,8 @@ class TestGeminiClientAspectRatio:
             # Call without aspect_ratio
             gemini_client.generate_content(contents=["test prompt"])
 
-            # Verify ImageConfig was called with output_mime_type but no aspect_ratio
-            mock_gx.ImageConfig.assert_called_once()
-            call_kwargs = mock_gx.ImageConfig.call_args[1]
-            assert 'aspect_ratio' not in call_kwargs
-            assert call_kwargs.get('output_mime_type') == "image/png"
+            # Verify ImageConfig was NOT called (no config parameters to set)
+            mock_gx.ImageConfig.assert_not_called()
 
     def test_config_conflict_warning(self, gemini_client, caplog):
         """Test warning when both config dict and aspect_ratio are provided."""

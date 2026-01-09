@@ -150,9 +150,6 @@ class GeminiClient:
                     image_config_kwargs["image_size"] = image_size
                     self.logger.info(f"Setting image_size={image_size} for resolution={resolution}")
 
-                # Add output mime type
-                image_config_kwargs["output_mime_type"] = "image/png"
-
                 if image_config_kwargs:
                     config_kwargs["image_config"] = gx.ImageConfig(**image_config_kwargs)
 
