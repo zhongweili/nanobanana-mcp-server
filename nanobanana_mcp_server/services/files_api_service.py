@@ -8,13 +8,14 @@ Implements the Files API layer (F) shown in workflows.md:
 - Coordinate with database for metadata tracking
 """
 
-from typing import Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
-import os
 import logging
+import os
+from typing import Any
+
+from ..core.exceptions import FileOperationError
 from .gemini_client import GeminiClient
 from .image_database_service import ImageDatabaseService, ImageRecord
-from ..core.exceptions import FileOperationError
 
 
 class FilesAPIService:
@@ -33,8 +34,8 @@ class FilesAPIService:
         self.logger = logging.getLogger(__name__)
 
     def upload_and_track(
-        self, file_path: str, display_name: Optional[str] = None, record_id: Optional[int] = None
-    ) -> Tuple[str, str]:
+        self, file_path: str, display_name: str | None = None, record_id: int | None = None
+    ) -> tuple[str, str]:
         """
         Upload file to Files API and update database tracking.
 
@@ -81,7 +82,7 @@ class FilesAPIService:
             self.logger.error(f"Failed to upload {file_path}: {e}")
             raise FileOperationError(f"Files API upload failed: {e}")
 
-    def get_file_with_fallback(self, file_id: str) -> Tuple[Optional[str], Optional[ImageRecord]]:
+    def get_file_with_fallback(self, file_id: str) -> tuple[str | None, ImageRecord | None]:
         """
         Get file from Files API with fallback to local re-upload.
 
@@ -143,7 +144,7 @@ class FilesAPIService:
             self.logger.error(f"Error in get_file_with_fallback for {file_id}: {e}")
             return None, None
 
-    def ensure_file_available(self, file_id: str) -> Tuple[str, str]:
+    def ensure_file_available(self, file_id: str) -> tuple[str, str]:
         """
         Ensure file is available in Files API, re-uploading if necessary.
 
@@ -180,7 +181,7 @@ class FilesAPIService:
             self.logger.error(f"Failed to re-upload {file_id}: {e}")
             raise FileOperationError(f"Failed to re-upload expired file: {e}")
 
-    def create_file_data_part(self, file_id: str) -> Dict[str, Any]:
+    def create_file_data_part(self, file_id: str) -> dict[str, Any]:
         """
         Create file_data part for Gemini API calls.
 
@@ -217,7 +218,7 @@ class FilesAPIService:
             self.logger.error(f"Failed to create file_data part for {file_id}: {e}")
             raise
 
-    def cleanup_expired_files(self, dry_run: bool = False) -> Dict[str, Any]:
+    def cleanup_expired_files(self, dry_run: bool = False) -> dict[str, Any]:
         """
         Clean up expired Files API entries.
 
@@ -269,7 +270,7 @@ class FilesAPIService:
             self.logger.error(f"Error during cleanup: {e}")
             raise
 
-    def get_usage_stats(self) -> Dict[str, Any]:
+    def get_usage_stats(self) -> dict[str, Any]:
         """
         Get Files API usage statistics.
 

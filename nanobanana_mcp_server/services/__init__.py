@@ -81,17 +81,13 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
     _pro_gemini_client = GeminiClient(server_config, pro_config)
 
     # Create Pro image service (Flash uses existing _file_image_service)
-    _pro_image_service = ProImageService(
-        _pro_gemini_client,
-        pro_config,
-        _image_storage_service
-    )
+    _pro_image_service = ProImageService(_pro_gemini_client, pro_config, _image_storage_service)
 
     # Create model selector
     _model_selector = ModelSelector(
         _file_image_service,  # Flash service
-        _pro_image_service,   # Pro service
-        selection_config
+        _pro_image_service,  # Pro service
+        selection_config,
     )
 
 

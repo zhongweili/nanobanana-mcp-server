@@ -1,7 +1,9 @@
-from typing import Literal
-from fastmcp import FastMCP
-from ..config.constants import ASPECT_RATIOS
 import logging
+from typing import Literal
+
+from fastmcp import FastMCP
+
+from ..config.constants import ASPECT_RATIOS
 
 
 def register_design_prompts(server: FastMCP):

@@ -1,27 +1,30 @@
 """Memory management utilities for high-resolution image processing."""
 
 import asyncio
+from collections.abc import AsyncIterator
+from contextlib import contextmanager
 import logging
 import os
-import tempfile
-from contextlib import contextmanager
 from pathlib import Path
-from typing import AsyncIterator, Optional
+import tempfile
 
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
 
 try:
     import tracemalloc
+
     TRACEMALLOC_AVAILABLE = True
 except ImportError:
     TRACEMALLOC_AVAILABLE = False
 
 try:
     import aiofiles
+
     AIOFILES_AVAILABLE = True
 except ImportError:
     AIOFILES_AVAILABLE = False
@@ -84,13 +87,15 @@ class MemoryMonitor:
         if PSUTIL_AVAILABLE:
             try:
                 mem = psutil.virtual_memory()
-                stats.update({
-                    "available": True,
-                    "total_mb": mem.total / (1024 * 1024),
-                    "used_mb": mem.used / (1024 * 1024),
-                    "available_mb": mem.available / (1024 * 1024),
-                    "percent": mem.percent,
-                })
+                stats.update(
+                    {
+                        "available": True,
+                        "total_mb": mem.total / (1024 * 1024),
+                        "used_mb": mem.used / (1024 * 1024),
+                        "available_mb": mem.available / (1024 * 1024),
+                        "percent": mem.percent,
+                    }
+                )
             except Exception:
                 pass
 
@@ -118,16 +123,11 @@ class MemoryMonitor:
             tracemalloc.stop()
             self.logger.info(
                 f"Memory usage for {operation}: "
-                f"Current={current/1024/1024:.2f}MB, "
-                f"Peak={peak/1024/1024:.2f}MB"
+                f"Current={current / 1024 / 1024:.2f}MB, "
+                f"Peak={peak / 1024 / 1024:.2f}MB"
             )
 
-    def estimate_image_memory(
-        self,
-        width: int,
-        height: int,
-        format: str = "png"
-    ) -> int:
+    def estimate_image_memory(self, width: int, height: int, format: str = "png") -> int:
         """Estimate memory required for an image.
 
         Args:
@@ -155,10 +155,7 @@ class StreamingImageProcessor:
         self.chunk_size = chunk_size
         self.logger = logging.getLogger(__name__)
 
-    async def process_large_image(
-        self,
-        image_data: bytes
-    ) -> AsyncIterator[bytes]:
+    async def process_large_image(self, image_data: bytes) -> AsyncIterator[bytes]:
         """Process image in chunks to avoid memory spikes.
 
         Args:
@@ -168,7 +165,7 @@ class StreamingImageProcessor:
             Processed chunks of image data
         """
         for i in range(0, len(image_data), self.chunk_size):
-            chunk = image_data[i:i + self.chunk_size]
+            chunk = image_data[i : i + self.chunk_size]
             # Process chunk if needed (placeholder for actual processing)
             processed_chunk = await self._process_chunk(chunk)
             yield processed_chunk
@@ -187,11 +184,7 @@ class StreamingImageProcessor:
         await asyncio.sleep(0)  # Yield control
         return chunk
 
-    async def save_streaming(
-        self,
-        image_stream: AsyncIterator[bytes],
-        path: Path
-    ) -> int:
+    async def save_streaming(self, image_stream: AsyncIterator[bytes], path: Path) -> int:
         """Save image using streaming to minimize memory usage.
 
         Args:
@@ -206,7 +199,7 @@ class StreamingImageProcessor:
             return await self._save_sync(image_stream, path)
 
         total_bytes = 0
-        async with aiofiles.open(path, 'wb') as f:
+        async with aiofiles.open(path, "wb") as f:
             async for chunk in image_stream:
                 await f.write(chunk)
                 total_bytes += len(chunk)
@@ -214,11 +207,7 @@ class StreamingImageProcessor:
         self.logger.debug(f"Saved {total_bytes} bytes to {path}")
         return total_bytes
 
-    async def _save_sync(
-        self,
-        image_stream: AsyncIterator[bytes],
-        path: Path
-    ) -> int:
+    async def _save_sync(self, image_stream: AsyncIterator[bytes], path: Path) -> int:
         """Synchronous fallback for saving image.
 
         Args:
@@ -229,16 +218,14 @@ class StreamingImageProcessor:
             Total bytes written
         """
         total_bytes = 0
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             async for chunk in image_stream:
                 f.write(chunk)
                 total_bytes += len(chunk)
         return total_bytes
 
     async def read_streaming(
-        self,
-        path: Path,
-        chunk_size: Optional[int] = None
+        self, path: Path, chunk_size: int | None = None
     ) -> AsyncIterator[bytes]:
         """Read image file in chunks.
 
@@ -252,7 +239,7 @@ class StreamingImageProcessor:
         chunk_size = chunk_size or self.chunk_size
 
         if AIOFILES_AVAILABLE:
-            async with aiofiles.open(path, 'rb') as f:
+            async with aiofiles.open(path, "rb") as f:
                 while True:
                     chunk = await f.read(chunk_size)
                     if not chunk:
@@ -260,7 +247,7 @@ class StreamingImageProcessor:
                     yield chunk
         else:
             # Fallback to synchronous read
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 while True:
                     chunk = f.read(chunk_size)
                     if not chunk:
@@ -271,7 +258,7 @@ class StreamingImageProcessor:
 class TempFileManager:
     """Manage temporary files for large image operations."""
 
-    def __init__(self, base_dir: Optional[Path] = None):
+    def __init__(self, base_dir: Path | None = None):
         """Initialize temp file manager.
 
         Args:
@@ -281,11 +268,7 @@ class TempFileManager:
         self.logger = logging.getLogger(__name__)
         self._temp_files: list[Path] = []
 
-    def create_temp_file(
-        self,
-        prefix: str = "nanobanana_",
-        suffix: str = ".tmp"
-    ) -> Path:
+    def create_temp_file(self, prefix: str = "nanobanana_", suffix: str = ".tmp") -> Path:
         """Create a temporary file.
 
         Args:
@@ -295,11 +278,7 @@ class TempFileManager:
         Returns:
             Path to temporary file
         """
-        fd, path = tempfile.mkstemp(
-            prefix=prefix,
-            suffix=suffix,
-            dir=self.base_dir
-        )
+        fd, path = tempfile.mkstemp(prefix=prefix, suffix=suffix, dir=self.base_dir)
         os.close(fd)  # Close file descriptor
         temp_path = Path(path)
         self._temp_files.append(temp_path)
@@ -339,9 +318,9 @@ def optimize_for_memory(width: int, height: int) -> dict:
     total_pixels = width * height
 
     # Define thresholds
-    small = 1024 * 1024    # 1 megapixel
-    medium = 2048 * 2048   # 4 megapixels
-    large = 3840 * 2160    # 8K
+    small = 1024 * 1024  # 1 megapixel
+    medium = 2048 * 2048  # 4 megapixels
+    large = 3840 * 2160  # 8K
 
     if total_pixels <= small:
         return {
@@ -375,10 +354,7 @@ def optimize_for_memory(width: int, height: int) -> dict:
 
 
 async def process_with_memory_limit(
-    image_data: bytes,
-    width: int,
-    height: int,
-    memory_limit_mb: int = 2048
+    image_data: bytes, width: int, height: int, memory_limit_mb: int = 2048
 ) -> bytes:
     """Process image with memory limit enforcement.
 
@@ -403,7 +379,7 @@ async def process_with_memory_limit(
     if not monitor.check_available(required_bytes):
         raise MemoryError(
             f"Insufficient memory for {width}x{height} image. "
-            f"Required: {required_bytes/(1024*1024):.1f}MB"
+            f"Required: {required_bytes / (1024 * 1024):.1f}MB"
         )
 
     # Get optimization settings

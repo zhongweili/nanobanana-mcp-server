@@ -1,13 +1,15 @@
-from typing import List, Optional, Tuple, Dict, Any
+import base64
+import logging
+from typing import Any
+
 from fastmcp.utilities.types import Image as MCPImage
+
+from ..config.settings import GeminiConfig
+from ..core.progress_tracker import ProgressContext
+from ..utils.image_utils import optimize_image_size, validate_image_format
 from .gemini_client import GeminiClient
 from .image_storage_service import ImageStorageService, StoredImageInfo
 from .resolution_manager import ResolutionManager
-from ..utils.image_utils import validate_image_format, optimize_image_size
-from ..config.settings import GeminiConfig
-from ..core.progress_tracker import ProgressContext
-import logging
-import base64
 
 
 class ImageService:
@@ -17,7 +19,7 @@ class ImageService:
         self,
         gemini_client: GeminiClient,
         config: GeminiConfig,
-        storage_service: Optional[ImageStorageService] = None,
+        storage_service: ImageStorageService | None = None,
     ):
         self.gemini_client = gemini_client
         self.config = config
@@ -29,13 +31,13 @@ class ImageService:
         self,
         prompt: str,
         n: int = 1,
-        negative_prompt: Optional[str] = None,
-        system_instruction: Optional[str] = None,
-        input_images: Optional[List[Tuple[str, str]]] = None,
-        aspect_ratio: Optional[str] = None,
-        resolution: Optional[str] = None,
+        negative_prompt: str | None = None,
+        system_instruction: str | None = None,
+        input_images: list[tuple[str, str]] | None = None,
+        aspect_ratio: str | None = None,
+        resolution: str | None = None,
         use_storage: bool = True,
-    ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
+    ) -> tuple[list[MCPImage], list[dict[str, Any]]]:
         """
         Generate images using Gemini API.
 
@@ -63,8 +65,7 @@ class ImageService:
             if resolution:
                 try:
                     parsed_resolution = self.resolution_manager.parse_resolution(
-                        resolution, 
-                        model_tier="flash"
+                        resolution, model_tier="flash"
                     )
                     self.logger.info(f"Using resolution: {parsed_resolution}")
                 except Exception as e:
@@ -95,7 +96,7 @@ class ImageService:
             # Generate images
             all_images = []
             all_metadata = []
-            stored_images: List[StoredImageInfo] = []
+            stored_images: list[StoredImageInfo] = []
 
             for i in range(n):
                 try:
@@ -203,9 +204,9 @@ class ImageService:
         instruction: str,
         base_image_b64: str,
         mime_type: str = "image/png",
-        resolution: Optional[str] = None,
+        resolution: str | None = None,
         use_storage: bool = True,
-    ) -> Tuple[List[MCPImage], int]:
+    ) -> tuple[list[MCPImage], int]:
         """
         Edit an image using conversational instructions.
 
@@ -231,12 +232,13 @@ class ImageService:
                 if resolution:
                     try:
                         parsed_resolution = self.resolution_manager.parse_resolution(
-                            resolution,
-                            model_tier="flash"
+                            resolution, model_tier="flash"
                         )
                         self.logger.info(f"Using resolution for edit: {parsed_resolution}")
                     except Exception as e:
-                        self.logger.warning(f"Invalid resolution '{resolution}': {e}, using default")
+                        self.logger.warning(
+                            f"Invalid resolution '{resolution}': {e}, using default"
+                        )
 
                 # Validate and prepare image
                 validate_image_format(mime_type)
@@ -250,7 +252,9 @@ class ImageService:
                 progress.update(40, "Sending edit request to Gemini API...")
 
                 # Generate edited image
-                response = self.gemini_client.generate_content(contents, resolution=parsed_resolution)
+                response = self.gemini_client.generate_content(
+                    contents, resolution=parsed_resolution
+                )
                 image_bytes_list = self.gemini_client.extract_images(response)
 
                 progress.update(70, "Processing edited image(s)...")

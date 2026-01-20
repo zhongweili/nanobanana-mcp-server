@@ -8,10 +8,11 @@ Handles:
 - Database hygiene and consistency checks
 """
 
-import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any
+import logging
 from pathlib import Path
+from typing import Any
+
 from .files_api_service import FilesAPIService
 from .image_database_service import ImageDatabaseService
 
@@ -35,7 +36,7 @@ class MaintenanceService:
         self.out_dir = out_dir
         self.logger = logging.getLogger(__name__)
 
-    def cleanup_expired_files(self, dry_run: bool = True) -> Dict[str, Any]:
+    def cleanup_expired_files(self, dry_run: bool = True) -> dict[str, Any]:
         """
         Clean up expired Files API entries from database.
 
@@ -65,7 +66,7 @@ class MaintenanceService:
         dry_run: bool = True,
         max_age_hours: int = 168,  # 1 week
         keep_count: int = 10,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Clean up old local files based on age and LRU policy.
 
@@ -168,7 +169,7 @@ class MaintenanceService:
                 "errors": [str(e)],
             }
 
-    def check_storage_quota(self) -> Dict[str, Any]:
+    def check_storage_quota(self) -> dict[str, Any]:
         """
         Check Files API storage usage vs. ~20GB budget.
 
@@ -197,7 +198,7 @@ class MaintenanceService:
                 "usage_percentage": 0.0,
             }
 
-    def database_hygiene(self, dry_run: bool = True) -> Dict[str, Any]:
+    def database_hygiene(self, dry_run: bool = True) -> dict[str, Any]:
         """
         Clean up database inconsistencies and broken references.
 
@@ -250,7 +251,7 @@ class MaintenanceService:
 
     def full_maintenance_cycle(
         self, dry_run: bool = True, max_age_hours: int = 168, keep_count: int = 10
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Run complete maintenance cycle with all operations.
 
@@ -281,7 +282,7 @@ class MaintenanceService:
             # 4. Database hygiene
             results["database_hygiene"] = self.database_hygiene(dry_run=dry_run)
 
-            self.logger.info(f"Full maintenance cycle complete")
+            self.logger.info("Full maintenance cycle complete")
             return results
 
         except Exception as e:

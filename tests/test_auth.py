@@ -1,10 +1,11 @@
 import os
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from nanobanana_mcp_server.config.settings import ServerConfig, AuthMethod, GeminiConfig
-from nanobanana_mcp_server.services.gemini_client import GeminiClient
+import pytest
+
+from nanobanana_mcp_server.config.settings import AuthMethod, GeminiConfig, ServerConfig
 from nanobanana_mcp_server.core.exceptions import ADCConfigurationError
+from nanobanana_mcp_server.services.gemini_client import GeminiClient
 
 
 class TestAuthConfiguration:
@@ -44,20 +45,18 @@ class TestAuthConfiguration:
                 with pytest.raises(ValueError):
                     ServerConfig.from_env()
 
+
 class TestGeminiClientAuth:
     @patch("google.genai.Client")
     def test_api_key_client_creation(self, mock_client_cls):
         """Client is created correctly with API key authentication."""
-        config = ServerConfig(
-            gemini_api_key="test-key",
-            auth_method=AuthMethod.API_KEY
-        )
+        config = ServerConfig(gemini_api_key="test-key", auth_method=AuthMethod.API_KEY)
         gemini_config = GeminiConfig()
         client = GeminiClient(config, gemini_config)
 
         # Access client property to trigger initialization
         _ = client.client
-        
+
         mock_client_cls.assert_called_with(api_key="test-key")
 
     @patch("google.genai.Client")
@@ -67,16 +66,14 @@ class TestGeminiClientAuth:
             gemini_api_key=None,
             auth_method=AuthMethod.VERTEX_AI,
             gcp_project_id="test-project",
-            gcp_region="us-central1"
+            gcp_region="us-central1",
         )
         gemini_config = GeminiConfig()
         client = GeminiClient(config, gemini_config)
 
         # Access client property to trigger initialization
         _ = client.client
-        
+
         mock_client_cls.assert_called_with(
-            vertexai=True,
-            project="test-project",
-            location="us-central1"
+            vertexai=True, project="test-project", location="us-central1"
         )

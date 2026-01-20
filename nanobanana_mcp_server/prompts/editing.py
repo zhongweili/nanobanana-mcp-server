@@ -1,5 +1,6 @@
-from fastmcp import FastMCP
 import logging
+
+from fastmcp import FastMCP
 
 
 def register_editing_prompts(server: FastMCP):

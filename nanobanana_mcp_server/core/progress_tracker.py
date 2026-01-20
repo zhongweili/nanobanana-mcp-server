@@ -3,13 +3,14 @@ Progress tracking system for long-running operations like image generation.
 Provides real-time progress updates via structured logging and optional SSE support.
 """
 
-import time
-import uuid
-import threading
-from typing import Dict, Any, Optional, Callable, List
-from dataclasses import dataclass, asdict
+from collections.abc import Callable
+from dataclasses import asdict, dataclass
 from enum import Enum
 import logging
+import threading
+import time
+from typing import Any
+import uuid
 
 
 class OperationStatus(Enum):
@@ -31,9 +32,9 @@ class ProgressUpdate:
     status: OperationStatus
     progress_percent: int  # 0-100
     message: str
-    details: Optional[Dict[str, Any]] = None
+    details: dict[str, Any] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         data = asdict(self)
         data["status"] = self.status.value
@@ -50,10 +51,10 @@ class TrackedOperation:
     status: OperationStatus
     progress_percent: int
     current_message: str
-    updates: List[ProgressUpdate]
-    metadata: Dict[str, Any]
+    updates: list[ProgressUpdate]
+    metadata: dict[str, Any]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         data = asdict(self)
         data["status"] = self.status.value
@@ -65,12 +66,12 @@ class ProgressTracker:
     """Thread-safe progress tracking for long-running operations."""
 
     def __init__(self):
-        self.operations: Dict[str, TrackedOperation] = {}
+        self.operations: dict[str, TrackedOperation] = {}
         self.lock = threading.RLock()
         self.logger = logging.getLogger(__name__)
 
         # Optional callback for real-time updates (e.g., SSE)
-        self.update_callback: Optional[Callable[[ProgressUpdate], None]] = None
+        self.update_callback: Callable[[ProgressUpdate], None] | None = None
 
     def set_update_callback(self, callback: Callable[[ProgressUpdate], None]) -> None:
         """Set callback function for real-time progress updates."""
@@ -80,7 +81,7 @@ class ProgressTracker:
         self,
         operation_type: str,
         initial_message: str = "Starting...",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> str:
         """
         Start tracking a new operation.
@@ -120,8 +121,8 @@ class ProgressTracker:
         operation_id: str,
         progress_percent: int,
         message: str,
-        status: Optional[OperationStatus] = None,
-        details: Optional[Dict[str, Any]] = None,
+        status: OperationStatus | None = None,
+        details: dict[str, Any] | None = None,
     ) -> bool:
         """
         Update operation progress.
@@ -158,13 +159,13 @@ class ProgressTracker:
         self,
         operation_id: str,
         message: str = "Completed successfully",
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> bool:
         """Mark operation as completed."""
         return self.update_progress(operation_id, 100, message, OperationStatus.COMPLETED, details)
 
     def fail_operation(
-        self, operation_id: str, error_message: str, details: Optional[Dict[str, Any]] = None
+        self, operation_id: str, error_message: str, details: dict[str, Any] | None = None
     ) -> bool:
         """Mark operation as failed."""
         return self.update_progress(
@@ -175,12 +176,12 @@ class ProgressTracker:
         """Cancel an operation."""
         return self.update_progress(operation_id, -1, message, OperationStatus.CANCELLED)
 
-    def get_operation(self, operation_id: str) -> Optional[TrackedOperation]:
+    def get_operation(self, operation_id: str) -> TrackedOperation | None:
         """Get operation details."""
         with self.lock:
             return self.operations.get(operation_id)
 
-    def get_operation_status(self, operation_id: str) -> Optional[Dict[str, Any]]:
+    def get_operation_status(self, operation_id: str) -> dict[str, Any] | None:
         """Get current operation status as dict."""
         operation = self.get_operation(operation_id)
         if operation:
@@ -196,8 +197,8 @@ class ProgressTracker:
         return None
 
     def list_operations(
-        self, operation_type: Optional[str] = None, status: Optional[OperationStatus] = None
-    ) -> List[Dict[str, Any]]:
+        self, operation_type: str | None = None, status: OperationStatus | None = None
+    ) -> list[dict[str, Any]]:
         """List operations, optionally filtered by type and status."""
         with self.lock:
             operations = []
@@ -238,7 +239,7 @@ class ProgressTracker:
         status: OperationStatus,
         progress_percent: int,
         message: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Add a progress update to an operation (internal method)."""
         update = ProgressUpdate(
@@ -264,7 +265,7 @@ class ProgressTracker:
 
 
 # Global progress tracker instance
-_progress_tracker: Optional[ProgressTracker] = None
+_progress_tracker: ProgressTracker | None = None
 
 
 def get_progress_tracker() -> ProgressTracker:
@@ -282,14 +283,14 @@ class ProgressContext:
         self,
         operation_type: str,
         initial_message: str = "Starting...",
-        metadata: Optional[Dict[str, Any]] = None,
-        tracker: Optional[ProgressTracker] = None,
+        metadata: dict[str, Any] | None = None,
+        tracker: ProgressTracker | None = None,
     ):
         self.operation_type = operation_type
         self.initial_message = initial_message
         self.metadata = metadata
         self.tracker = tracker or get_progress_tracker()
-        self.operation_id: Optional[str] = None
+        self.operation_id: str | None = None
 
     def __enter__(self) -> "ProgressContext":
         """Start progress tracking."""
@@ -305,14 +306,14 @@ class ProgressContext:
 
         if exc_type is not None:
             # Operation failed
-            error_msg = f"Failed: {str(exc_val)}" if exc_val else "Operation failed"
+            error_msg = f"Failed: {exc_val!s}" if exc_val else "Operation failed"
             self.tracker.fail_operation(self.operation_id, error_msg)
         else:
             # Operation completed successfully
             self.tracker.complete_operation(self.operation_id)
 
     def update(
-        self, progress_percent: int, message: str, details: Optional[Dict[str, Any]] = None
+        self, progress_percent: int, message: str, details: dict[str, Any] | None = None
     ) -> None:
         """Update progress."""
         if self.operation_id:

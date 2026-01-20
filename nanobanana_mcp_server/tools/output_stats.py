@@ -2,11 +2,13 @@
 Tool for getting output directory statistics.
 """
 
-from fastmcp import FastMCP, Context
+import logging
+
+from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
 from mcp.types import TextContent
+
 from ..services import get_file_image_service
-import logging
 
 
 def register_output_stats_tool(server: FastMCP):

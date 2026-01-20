@@ -12,8 +12,8 @@ from pydantic import Field
 from ..config.constants import MAX_INPUT_IMAGES
 from ..config.settings import ModelTier, ThinkingLevel
 from ..core.exceptions import ValidationError
-from ..utils.validation_utils import validate_output_path
 from ..services.resolution_manager import ResolutionManager
+from ..utils.validation_utils import validate_output_path
 
 
 def register_generate_image_tool(server: FastMCP):
@@ -145,11 +145,12 @@ def register_generate_image_tool(server: FastMCP):
         if size and not resolution:
             logger.info(f"Using deprecated 'size' parameter: {size}, mapping to 'resolution'")
             resolution = size
-        
+
         # Initialize ResolutionManager
         from ..config.settings import GeminiConfig
+
         resolution_manager = ResolutionManager(GeminiConfig())
-        
+
         try:
             # Construct input_image_paths list from individual parameters
             input_image_paths = []
@@ -192,15 +193,14 @@ def register_generate_image_tool(server: FastMCP):
                     # Validate resolution based on selected tier
                     model_tier_str = "pro" if tier == ModelTier.PRO else "flash"
                     parsed_resolution = resolution_manager.parse_resolution(
-                        resolution,
-                        model_tier=model_tier_str
+                        resolution, model_tier=model_tier_str
                     )
                     logger.info(f"Validated resolution: {parsed_resolution}")
                 except Exception as e:
                     logger.warning(f"Invalid resolution '{resolution}': {e}, using default")
                     parsed_resolution = "high"
-            
-# Validate thinking level for Pro model
+
+            # Validate thinking level for Pro model
             try:
                 if thinking_level:
                     _ = ThinkingLevel(thinking_level)  # Just validate

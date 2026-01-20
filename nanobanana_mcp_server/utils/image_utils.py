@@ -1,8 +1,9 @@
-from typing import Dict, List, Tuple, Optional
 import base64
-from PIL import Image
 from io import BytesIO
 import logging
+
+from PIL import Image
+
 from ..config.constants import SUPPORTED_IMAGE_TYPES
 from ..core.exceptions import ImageProcessingError, ValidationError
 
@@ -12,7 +13,7 @@ def validate_image_format(mime_type: str) -> bool:
     return mime_type.lower() in SUPPORTED_IMAGE_TYPES
 
 
-def get_image_dimensions(image_b64: str) -> Tuple[int, int]:
+def get_image_dimensions(image_b64: str) -> tuple[int, int]:
     """Get image dimensions from base64 data."""
     try:
         image_data = base64.b64decode(image_b64)
@@ -147,7 +148,7 @@ def create_thumbnail(source_path: str, thumb_path: str, size: int = 256) -> None
         raise ImageProcessingError(f"Thumbnail creation failed: {e}")
 
 
-def create_thumbnail_base64(image_b64: str, size: Tuple[int, int] = (256, 256)) -> str:
+def create_thumbnail_base64(image_b64: str, size: tuple[int, int] = (256, 256)) -> str:
     """Create a thumbnail from base64 image data."""
     try:
         image_data = base64.b64decode(image_b64)
@@ -169,11 +170,8 @@ def create_thumbnail_base64(image_b64: str, size: Tuple[int, int] = (256, 256)) 
 
 
 def create_multiple_thumbnails(
-    image_bytes: bytes,
-    sizes: List[int] = None,
-    format: str = "JPEG",
-    quality: int = 85
-) -> Dict[int, bytes]:
+    image_bytes: bytes, sizes: list[int] = None, format: str = "JPEG", quality: int = 85
+) -> dict[int, bytes]:
     """Create multiple thumbnail sizes from image data.
 
     Args:
@@ -236,10 +234,7 @@ def create_multiple_thumbnails(
 
 
 def resize_image(
-    image_bytes: bytes,
-    max_width: int,
-    max_height: int,
-    maintain_aspect: bool = True
+    image_bytes: bytes, max_width: int, max_height: int, maintain_aspect: bool = True
 ) -> bytes:
     """Resize an image to fit within specified dimensions.
 
@@ -283,12 +278,7 @@ def resize_image(
         raise ImageProcessingError(f"Image resize failed: {e}")
 
 
-def estimate_file_size(
-    width: int,
-    height: int,
-    format: str = "png",
-    quality: int = 85
-) -> int:
+def estimate_file_size(width: int, height: int, format: str = "png", quality: int = 85) -> int:
     """Estimate the file size of an image.
 
     Args:
@@ -374,7 +364,7 @@ def validate_image_content(image_b64: str, mime_type: str) -> bool:
         return False
 
 
-def detect_image_type(image_b64: str) -> Optional[str]:
+def detect_image_type(image_b64: str) -> str | None:
     """Detect the actual image type from base64 data."""
     try:
         image_data = base64.b64decode(image_b64)

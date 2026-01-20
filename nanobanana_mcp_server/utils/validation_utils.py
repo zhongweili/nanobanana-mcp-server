@@ -1,10 +1,11 @@
 """Additional validation utilities beyond core validation."""
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+import os
 from pathlib import Path
 import re
-import os
+from typing import Any
 from urllib.parse import urlparse
+
 from ..core.exceptions import ValidationError
 
 # Supported image extensions for output path detection
@@ -27,7 +28,7 @@ def validate_display_name(display_name: str) -> None:
 
 
 def validate_positive_integer(
-    value: Any, name: str, min_value: int = 1, max_value: Optional[int] = None
+    value: Any, name: str, min_value: int = 1, max_value: int | None = None
 ) -> None:
     """Validate that a value is a positive integer within bounds."""
     if not isinstance(value, int):
@@ -41,7 +42,7 @@ def validate_positive_integer(
 
 
 def validate_string_length(
-    value: str, name: str, min_length: int = 0, max_length: Optional[int] = None
+    value: str, name: str, min_length: int = 0, max_length: int | None = None
 ) -> None:
     """Validate string length."""
     if not isinstance(value, str):
@@ -61,7 +62,7 @@ def validate_email(email: str) -> None:
         raise ValidationError("Invalid email address format")
 
 
-def validate_url(url: str, allowed_schemes: Optional[List[str]] = None) -> None:
+def validate_url(url: str, allowed_schemes: list[str] | None = None) -> None:
     """Validate URL format and scheme."""
     try:
         parsed = urlparse(url)
@@ -75,7 +76,7 @@ def validate_url(url: str, allowed_schemes: Optional[List[str]] = None) -> None:
         raise ValidationError(f"Invalid URL: {e}")
 
 
-def validate_file_extension(filename: str, allowed_extensions: List[str]) -> None:
+def validate_file_extension(filename: str, allowed_extensions: list[str]) -> None:
     """Validate file extension."""
     if not filename:
         raise ValidationError("Filename cannot be empty")
@@ -86,7 +87,7 @@ def validate_file_extension(filename: str, allowed_extensions: List[str]) -> Non
 
 
 def validate_json_structure(
-    data: Any, required_fields: List[str], optional_fields: Optional[List[str]] = None
+    data: Any, required_fields: list[str], optional_fields: list[str] | None = None
 ) -> None:
     """Validate JSON structure has required fields."""
     if not isinstance(data, dict):
@@ -150,7 +151,7 @@ def sanitize_filename(filename: str) -> str:
     return filename
 
 
-def validate_content_type(content_type: str, allowed_types: List[str]) -> None:
+def validate_content_type(content_type: str, allowed_types: list[str]) -> None:
     """Validate content type against allowed types."""
     if not content_type:
         raise ValidationError("Content type cannot be empty")
@@ -195,7 +196,7 @@ def validate_search_query(query: str, min_length: int = 1, max_length: int = 100
 
 
 def validate_timeout_seconds(
-    timeout: Union[int, float], min_timeout: float = 0.1, max_timeout: float = 300.0
+    timeout: int | float, min_timeout: float = 0.1, max_timeout: float = 300.0
 ) -> None:
     """Validate timeout value in seconds."""
     if not isinstance(timeout, (int, float)):
@@ -249,7 +250,7 @@ def validate_aspect_ratio_string(aspect_ratio: str) -> None:
         )
 
 
-def validate_resolution_string(resolution_str: str) -> Tuple[int, int]:
+def validate_resolution_string(resolution_str: str) -> tuple[int, int]:
     """Validate and parse resolution string format.
 
     Formats supported:
@@ -285,11 +286,8 @@ def validate_resolution_string(resolution_str: str) -> Tuple[int, int]:
 
 
 def validate_resolution_dimensions(
-    width: Any,
-    height: Any,
-    min_size: int = 16,
-    max_size: int = 3840
-) -> Tuple[int, int]:
+    width: Any, height: Any, min_size: int = 16, max_size: int = 3840
+) -> tuple[int, int]:
     """Validate resolution dimensions are within bounds.
 
     Args:
@@ -322,9 +320,8 @@ def validate_resolution_dimensions(
 
 
 def validate_custom_resolution(
-    resolution: Union[str, Dict, List],
-    model_tier: str = "flash"
-) -> Tuple[int, int]:
+    resolution: str | dict | list, model_tier: str = "flash"
+) -> tuple[int, int]:
     """Validate and parse custom resolution specification.
 
     Args:
@@ -346,6 +343,7 @@ def validate_custom_resolution(
         else:
             # Check if it's a preset
             from ..config.constants import RESOLUTION_PRESETS
+
             if resolution.lower() in RESOLUTION_PRESETS:
                 return RESOLUTION_PRESETS[resolution.lower()]
             else:
@@ -355,9 +353,7 @@ def validate_custom_resolution(
     elif isinstance(resolution, dict):
         if "width" in resolution and "height" in resolution:
             return validate_resolution_dimensions(
-                resolution["width"],
-                resolution["height"],
-                max_size=max_size
+                resolution["width"], resolution["height"], max_size=max_size
             )
         else:
             raise ValidationError("Dictionary must have 'width' and 'height' keys")
@@ -366,11 +362,7 @@ def validate_custom_resolution(
     elif isinstance(resolution, list):
         if len(resolution) != 2:
             raise ValidationError("List must have exactly 2 elements [width, height]")
-        return validate_resolution_dimensions(
-            resolution[0],
-            resolution[1],
-            max_size=max_size
-        )
+        return validate_resolution_dimensions(resolution[0], resolution[1], max_size=max_size)
 
     else:
         raise ValidationError(f"Unsupported resolution type: {type(resolution)}")

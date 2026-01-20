@@ -1,9 +1,11 @@
-from typing import Annotated, Optional
-from pydantic import Field
-from fastmcp import FastMCP, Context
-from fastmcp.tools.tool import ToolResult
-from ..core.exceptions import ValidationError, FileOperationError
 import logging
+from typing import Annotated
+
+from fastmcp import Context, FastMCP
+from fastmcp.tools.tool import ToolResult
+from pydantic import Field
+
+from ..core.exceptions import FileOperationError, ValidationError
 
 
 def register_upload_file_tool(server: FastMCP):
@@ -26,7 +28,7 @@ def register_upload_file_tool(server: FastMCP):
             ),
         ],
         display_name: Annotated[
-            Optional[str],
+            str | None,
             Field(description="Optional display name for the uploaded file.", max_length=256),
         ] = None,
         ctx: Context = None,
@@ -76,4 +78,5 @@ def register_upload_file_tool(server: FastMCP):
 def _get_file_service():
     """Get the file service instance."""
     from ..services import get_file_service
+
     return get_file_service()

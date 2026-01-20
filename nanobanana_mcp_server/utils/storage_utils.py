@@ -1,10 +1,10 @@
 """Storage optimization utilities for progressive image storage."""
 
+import io
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+
 from PIL import Image as PILImage
-import io
 
 from ..config.constants import COMPRESSION_PROFILES
 
@@ -12,7 +12,7 @@ from ..config.constants import COMPRESSION_PROFILES
 class ProgressiveImageStorage:
     """Handle progressive storage of images with multiple variants."""
 
-    def __init__(self, thumbnail_sizes: List[int] = None):
+    def __init__(self, thumbnail_sizes: list[int] = None):
         """Initialize progressive storage handler.
 
         Args:
@@ -23,10 +23,8 @@ class ProgressiveImageStorage:
         self.compression_profiles = COMPRESSION_PROFILES
 
     def generate_variants(
-        self,
-        image_bytes: bytes,
-        mime_type: str = "image/png"
-    ) -> Dict[str, bytes]:
+        self, image_bytes: bytes, mime_type: str = "image/png"
+    ) -> dict[str, bytes]:
         """Generate multiple resolution variants of an image.
 
         Args:
@@ -51,9 +49,7 @@ class ProgressiveImageStorage:
                 if orig_width > size or orig_height > size:
                     variant_name = f"thumb_{size}"
                     variant_bytes = self._create_variant(
-                        image,
-                        size,
-                        self._get_compression_for_size(size)
+                        image, size, self._get_compression_for_size(size)
                     )
                     variants[variant_name] = variant_bytes
                     self.logger.debug(f"Generated {variant_name} variant")
@@ -61,17 +57,13 @@ class ProgressiveImageStorage:
             # Generate display variant (1024px) if larger
             if orig_width > 1024 or orig_height > 1024:
                 variants["display"] = self._create_variant(
-                    image,
-                    1024,
-                    self.compression_profiles.get("display", 85)
+                    image, 1024, self.compression_profiles.get("display", 85)
                 )
 
             # Generate preview variant (512px) if larger
             if orig_width > 512 or orig_height > 512:
                 variants["preview"] = self._create_variant(
-                    image,
-                    512,
-                    self.compression_profiles.get("preview", 80)
+                    image, 512, self.compression_profiles.get("preview", 80)
                 )
 
             return variants
@@ -81,12 +73,7 @@ class ProgressiveImageStorage:
             # Return at least the original
             return {"original": image_bytes}
 
-    def _create_variant(
-        self,
-        image: PILImage.Image,
-        max_size: int,
-        quality: int
-    ) -> bytes:
+    def _create_variant(self, image: PILImage.Image, max_size: int, quality: int) -> bytes:
         """Create a resized variant of an image.
 
         Args:
@@ -109,18 +96,15 @@ class ProgressiveImageStorage:
             new_width = int(new_height * aspect_ratio)
 
         # Resize image
-        resized = image.resize(
-            (new_width, new_height),
-            PILImage.Resampling.LANCZOS
-        )
+        resized = image.resize((new_width, new_height), PILImage.Resampling.LANCZOS)
 
         # Convert to RGB if necessary (for JPEG)
-        if resized.mode not in ('RGB', 'L'):
-            resized = resized.convert('RGB')
+        if resized.mode not in ("RGB", "L"):
+            resized = resized.convert("RGB")
 
         # Save to bytes
         buffer = io.BytesIO()
-        resized.save(buffer, format='JPEG', quality=quality, optimize=True)
+        resized.save(buffer, format="JPEG", quality=quality, optimize=True)
         return buffer.getvalue()
 
     def _get_compression_for_size(self, size: int) -> int:
@@ -140,10 +124,8 @@ class ProgressiveImageStorage:
             return self.compression_profiles.get("display", 85)
 
     def calculate_storage_savings(
-        self,
-        original_bytes: int,
-        variants: Dict[str, bytes]
-    ) -> Dict[str, any]:
+        self, original_bytes: int, variants: dict[str, bytes]
+    ) -> dict[str, any]:
         """Calculate storage savings from optimization.
 
         Args:
@@ -160,12 +142,11 @@ class ProgressiveImageStorage:
             "original_size": original_bytes,
             "total_variant_size": total_variant_size,
             "savings_bytes": max(0, savings),
-            "savings_percent": max(0, (savings / original_bytes * 100)) if original_bytes > 0 else 0,
+            "savings_percent": max(0, (savings / original_bytes * 100))
+            if original_bytes > 0
+            else 0,
             "variant_count": len(variants),
-            "variants": {
-                name: len(data)
-                for name, data in variants.items()
-            }
+            "variants": {name: len(data) for name, data in variants.items()},
         }
 
 
@@ -184,9 +165,9 @@ class OptimizedImageRetrieval:
     def get_optimal_variant(
         self,
         image_id: str,
-        requested_size: Optional[int] = None,
-        available_variants: Dict[str, str] = None
-    ) -> Tuple[str, str]:
+        requested_size: int | None = None,
+        available_variants: dict[str, str] = None,
+    ) -> tuple[str, str]:
         """Get the optimal image variant for a request.
 
         Args:
@@ -209,7 +190,7 @@ class OptimizedImageRetrieval:
         suitable_variants = []
         for name, path in available_variants.items():
             if name == "original":
-                suitable_variants.append((float('inf'), name, path))
+                suitable_variants.append((float("inf"), name, path))
             elif name.startswith("thumb_"):
                 size = int(name.split("_")[1])
                 if size >= requested_size:
@@ -230,11 +211,8 @@ class OptimizedImageRetrieval:
         return "original", available_variants.get("original", "")
 
     def estimate_bandwidth_savings(
-        self,
-        original_size: int,
-        variant_size: int,
-        request_count: int = 1
-    ) -> Dict[str, any]:
+        self, original_size: int, variant_size: int, request_count: int = 1
+    ) -> dict[str, any]:
         """Estimate bandwidth savings from using variants.
 
         Args:
@@ -253,16 +231,16 @@ class OptimizedImageRetrieval:
             "original_bandwidth": original_bandwidth,
             "variant_bandwidth": variant_bandwidth,
             "savings_bytes": savings,
-            "savings_percent": (savings / original_bandwidth * 100) if original_bandwidth > 0 else 0,
-            "request_count": request_count
+            "savings_percent": (savings / original_bandwidth * 100)
+            if original_bandwidth > 0
+            else 0,
+            "request_count": request_count,
         }
 
 
 def optimize_image_format(
-    image_bytes: bytes,
-    target_format: str = "webp",
-    quality: int = 85
-) -> Tuple[bytes, str]:
+    image_bytes: bytes, target_format: str = "webp", quality: int = 85
+) -> tuple[bytes, str]:
     """Optimize image format for better compression.
 
     Args:
@@ -278,19 +256,19 @@ def optimize_image_format(
         image = PILImage.open(io.BytesIO(image_bytes))
 
         # Convert to RGB if necessary for JPEG/WebP
-        if target_format in ["webp", "jpeg"] and image.mode not in ('RGB', 'L'):
-            image = image.convert('RGB')
+        if target_format in ["webp", "jpeg"] and image.mode not in ("RGB", "L"):
+            image = image.convert("RGB")
 
         # Save in target format
         buffer = io.BytesIO()
         if target_format == "webp":
-            image.save(buffer, format='WEBP', quality=quality, method=6)
+            image.save(buffer, format="WEBP", quality=quality, method=6)
             mime_type = "image/webp"
         elif target_format == "jpeg":
-            image.save(buffer, format='JPEG', quality=quality, optimize=True)
+            image.save(buffer, format="JPEG", quality=quality, optimize=True)
             mime_type = "image/jpeg"
         else:
-            image.save(buffer, format='PNG', optimize=True)
+            image.save(buffer, format="PNG", optimize=True)
             mime_type = "image/png"
 
         optimized_bytes = buffer.getvalue()

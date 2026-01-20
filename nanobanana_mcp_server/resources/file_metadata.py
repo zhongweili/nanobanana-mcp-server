@@ -1,15 +1,17 @@
-from fastmcp import FastMCP
-from typing import Dict, Any
-from ..services import get_file_service
-from ..core.exceptions import FileOperationError, ValidationError
 import logging
+from typing import Any
+
+from fastmcp import FastMCP
+
+from ..core.exceptions import FileOperationError, ValidationError
+from ..services import get_file_service
 
 
 def register_file_metadata_resource(server: FastMCP):
     """Register the file metadata resource with the FastMCP server."""
 
     @server.resource("gemini://files/{name}")
-    def file_metadata(name: str) -> Dict[str, Any]:
+    def file_metadata(name: str) -> dict[str, Any]:
         """
         Fetch Files API metadata by file 'name' (like 'files/abc123').
         """
