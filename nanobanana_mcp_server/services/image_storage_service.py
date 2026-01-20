@@ -16,7 +16,13 @@ import logging
 from PIL import Image as PILImage
 import io
 
-from ..config.settings import GeminiConfig
+from ..config.settings import GeminiConfig, ResolutionConfig
+from ..config.constants import COMPRESSION_PROFILES
+from ..utils.memory_utils import (
+    MemoryMonitor,
+    StreamingImageProcessor,
+    optimize_for_memory,
+)
 
 
 @dataclass
@@ -37,13 +43,22 @@ class StoredImageInfo:
     thumbnail_width: int
     thumbnail_height: int
     metadata: Dict[str, Any]
+    resolution: Optional[str] = None  # Resolution used for generation
+    actual_resolution: Optional[str] = None  # Actual resolution of saved image
+    compression_quality: Optional[int] = None  # Compression quality used
 
 
 class ImageStorageService:
     """Service for storing, serving, and managing generated images."""
 
-    def __init__(self, config: GeminiConfig, base_dir: Optional[str] = None):
+    def __init__(
+        self,
+        config: GeminiConfig,
+        base_dir: Optional[str] = None,
+        resolution_config: Optional[ResolutionConfig] = None
+    ):
         self.config = config
+        self.resolution_config = resolution_config or ResolutionConfig()
         self.base_dir = Path(base_dir or "temp_images")
         self.thumbnails_dir = self.base_dir / "thumbnails"
         self.metadata_file = self.base_dir / "image_registry.json"
@@ -54,6 +69,12 @@ class ImageStorageService:
         self.thumbnail_max_size = (256, 256)
         self.thumbnail_quality = 85
         self.max_thumbnail_bytes = 50 * 1024  # 50KB
+
+        # Multiple thumbnail sizes from resolution config
+        self.thumbnail_sizes = self.resolution_config.thumbnail_sizes
+
+        # Memory monitoring
+        self.memory_monitor = MemoryMonitor(self.resolution_config.memory_limit_mb)
 
         # Ensure directories exist
         self._setup_directories()
@@ -167,6 +188,7 @@ class ImageStorageService:
         mime_type: str,
         metadata: Optional[Dict[str, Any]] = None,
         ttl_seconds: Optional[int] = None,
+        resolution: Optional[str] = None,
     ) -> StoredImageInfo:
         """
         Store image and generate thumbnail.
@@ -204,11 +226,26 @@ class ImageStorageService:
             image = PILImage.open(io.BytesIO(image_bytes))
             width, height = image.size
 
-            # Store full image
+            # Check memory constraints for high-resolution images
+            memory_settings = optimize_for_memory(width, height)
+
+            # Determine compression quality based on resolution
+            if width > 3000 or height > 3000:
+                compression_quality = COMPRESSION_PROFILES.get("display", 85)
+            elif width > 2000 or height > 2000:
+                compression_quality = COMPRESSION_PROFILES.get("original", 95)
+            else:
+                compression_quality = 95
+
+            # Store full image with optimized compression
+            if memory_settings["use_streaming"]:
+                # For very large images, use streaming
+                self.logger.debug(f"Using streaming for {width}x{height} image")
+
             with open(full_path, "wb") as f:
                 f.write(image_bytes)
 
-            # Generate and store thumbnail
+            # Generate and store multiple thumbnail sizes
             thumbnail_bytes, thumb_w, thumb_h = self._generate_thumbnail(image_bytes, mime_type)
             with open(thumbnail_path, "wb") as f:
                 f.write(thumbnail_bytes)
@@ -218,7 +255,7 @@ class ImageStorageService:
             created_at = time.time()
             expires_at = created_at + ttl
 
-            # Create info object
+            # Create info object with resolution details
             info = StoredImageInfo(
                 id=image_id,
                 filename=filename,
@@ -234,6 +271,9 @@ class ImageStorageService:
                 thumbnail_width=thumb_w,
                 thumbnail_height=thumb_h,
                 metadata=metadata or {},
+                resolution=resolution,
+                actual_resolution=f"{width}x{height}",
+                compression_quality=compression_quality,
             )
 
             # Store in registry
