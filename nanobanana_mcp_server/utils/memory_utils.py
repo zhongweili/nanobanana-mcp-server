@@ -1,11 +1,13 @@
 """Memory management utilities for high-resolution image processing."""
 
 import asyncio
+import atexit
 from collections.abc import AsyncIterator
 from contextlib import contextmanager
 import logging
 import os
 from pathlib import Path
+import shutil
 import tempfile
 
 try:
@@ -66,8 +68,11 @@ class MemoryMonitor:
             # Ensure buffer space
             required_with_buffer = required_bytes + self.limit_bytes * MEMORY_BUFFER_PERCENT
             return available > required_with_buffer
-        except Exception as e:
+        except (AttributeError, OSError) as e:
             self.logger.warning(f"Could not check memory: {e}")
+            return required_bytes < self.limit_bytes
+        except Exception as e:
+            self.logger.error(f"Unexpected error checking memory: {e}")
             return required_bytes < self.limit_bytes
 
     def get_memory_usage(self) -> dict:
@@ -78,6 +83,7 @@ class MemoryMonitor:
         """
         stats = {
             "available": False,
+            "error": None,
             "total_mb": 0,
             "used_mb": 0,
             "available_mb": 0,
@@ -96,8 +102,12 @@ class MemoryMonitor:
                         "percent": mem.percent,
                     }
                 )
-            except Exception:
-                pass
+            except (AttributeError, OSError) as e:
+                stats["error"] = f"Memory access error: {e}"
+                self.logger.warning(f"Could not get memory stats: {e}")
+            except Exception as e:
+                stats["error"] = f"Unexpected error: {e}"
+                self.logger.error(f"Unexpected error getting memory stats: {e}")
 
         return stats
 
@@ -258,6 +268,9 @@ class StreamingImageProcessor:
 class TempFileManager:
     """Manage temporary files for large image operations."""
 
+    # Class-level tracking of all temp directories for cleanup
+    _all_temp_dirs: set[Path] = set()
+
     def __init__(self, base_dir: Path | None = None):
         """Initialize temp file manager.
 
@@ -267,6 +280,11 @@ class TempFileManager:
         self.base_dir = base_dir or Path(tempfile.gettempdir())
         self.logger = logging.getLogger(__name__)
         self._temp_files: list[Path] = []
+        self._temp_dir: Path | None = None
+
+        # Register cleanup on first instantiation
+        if not TempFileManager._all_temp_dirs:
+            atexit.register(TempFileManager._cleanup_all_temp_dirs)
 
     def create_temp_file(self, prefix: str = "nanobanana_", suffix: str = ".tmp") -> Path:
         """Create a temporary file.
@@ -285,16 +303,52 @@ class TempFileManager:
         self.logger.debug(f"Created temp file: {temp_path}")
         return temp_path
 
+    def create_temp_dir(self, prefix: str = "nanobanana_dir_") -> Path:
+        """Create a temporary directory.
+
+        Args:
+            prefix: Directory prefix
+
+        Returns:
+            Path to temporary directory
+        """
+        self._temp_dir = Path(tempfile.mkdtemp(prefix=prefix, dir=self.base_dir))
+        TempFileManager._all_temp_dirs.add(self._temp_dir)
+        self.logger.debug(f"Created temp directory: {self._temp_dir}")
+        return self._temp_dir
+
     def cleanup(self) -> None:
-        """Clean up all temporary files."""
+        """Clean up all temporary files and directories."""
+        # Clean up individual files
         for path in self._temp_files:
             try:
                 if path.exists():
                     path.unlink()
                     self.logger.debug(f"Deleted temp file: {path}")
-            except Exception as e:
+            except OSError as e:
                 self.logger.warning(f"Could not delete temp file {path}: {e}")
         self._temp_files.clear()
+
+        # Clean up temp directory if created
+        if self._temp_dir and self._temp_dir.exists():
+            try:
+                shutil.rmtree(self._temp_dir, ignore_errors=True)
+                TempFileManager._all_temp_dirs.discard(self._temp_dir)
+                self.logger.debug(f"Deleted temp directory: {self._temp_dir}")
+            except OSError as e:
+                self.logger.warning(f"Could not delete temp directory {self._temp_dir}: {e}")
+
+    @classmethod
+    def _cleanup_all_temp_dirs(cls) -> None:
+        """Clean up all temp directories on exit."""
+        logger = logging.getLogger(__name__)
+        for temp_dir in cls._all_temp_dirs:
+            if temp_dir.exists():
+                try:
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                    logger.debug(f"Cleaned up temp directory on exit: {temp_dir}")
+                except Exception:
+                    pass  # Silent cleanup on exit
 
     def __enter__(self):
         """Context manager entry."""

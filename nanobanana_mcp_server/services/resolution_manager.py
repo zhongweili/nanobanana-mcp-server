@@ -6,6 +6,7 @@ for both Flash and Pro models, supporting multiple input formats and memory cons
 
 import logging
 import re
+from typing import Any, TypeAlias
 
 from ..config.constants import (
     BYTES_PER_PIXEL_RGBA,
@@ -18,6 +19,10 @@ from ..config.constants import (
 from ..config.settings import ResolutionConfig
 from ..core.exceptions import ValidationError
 from ..services.model_selector import ModelTier
+
+# Type aliases for cleaner function signatures
+ResolutionInput: TypeAlias = str | dict[str, Any] | list[int] | None
+ResolutionTuple: TypeAlias = tuple[int, int]
 
 
 class ResolutionManager:
@@ -38,10 +43,10 @@ class ResolutionManager:
 
     def validate_resolution(
         self,
-        resolution: str | dict | list | None,
+        resolution: ResolutionInput,
         model_tier: ModelTier,
         prompt_hints: list[str] | None = None,
-    ) -> tuple[int, int]:
+    ) -> ResolutionTuple:
         """Validate and normalize resolution based on model capabilities.
 
         Args:
@@ -77,8 +82,8 @@ class ResolutionManager:
         return width, height
 
     def parse_resolution(
-        self, resolution: str | dict | list | None, model_tier: ModelTier | None = None
-    ) -> tuple[int, int]:
+        self, resolution: ResolutionInput, model_tier: ModelTier | None = None
+    ) -> ResolutionTuple:
         """Parse resolution from various input formats.
 
         Supports:
@@ -133,12 +138,21 @@ class ResolutionManager:
 
         # Check for dimension format (e.g., "1920x1080")
         if "x" in resolution:
+            # Validate format to prevent injection
+            if not re.match(r"^\d{1,5}x\d{1,5}$", resolution):
+                raise ValidationError(f"Invalid dimension format: {resolution}")
+
             parts = resolution.split("x")
-            if len(parts) != 2:
-                raise ValidationError(f"Invalid resolution format: {resolution}")
             try:
-                width = int(parts[0].strip())
-                height = int(parts[1].strip())
+                width = int(parts[0])
+                height = int(parts[1])
+
+                # Validate reasonable dimensions
+                if width <= 0 or height <= 0:
+                    raise ValidationError(f"Dimensions must be positive: {resolution}")
+                if width > 10000 or height > 10000:
+                    raise ValidationError(f"Dimensions exceed maximum (10000px): {resolution}")
+
                 return width, height
             except ValueError:
                 raise ValidationError(f"Invalid resolution dimensions: {resolution}")

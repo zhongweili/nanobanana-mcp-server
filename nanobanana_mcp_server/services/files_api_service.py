@@ -78,9 +78,12 @@ class FilesAPIService:
 
             return file_id, file_uri
 
-        except Exception as e:
+        except (OSError, ValueError) as e:
             self.logger.error(f"Failed to upload {file_path}: {e}")
-            raise FileOperationError(f"Files API upload failed: {e}")
+            raise FileOperationError(f"Files API upload failed: {e}") from e
+        except Exception as e:
+            self.logger.critical(f"Unexpected error uploading {file_path}: {e}")
+            raise
 
     def get_file_with_fallback(self, file_id: str) -> tuple[str | None, ImageRecord | None]:
         """
@@ -140,8 +143,11 @@ class FilesAPIService:
             )
             return None, record
 
+        except OSError as e:
+            self.logger.error(f"File system error in get_file_with_fallback for {file_id}: {e}")
+            return None, None
         except Exception as e:
-            self.logger.error(f"Error in get_file_with_fallback for {file_id}: {e}")
+            self.logger.critical(f"Unexpected error in get_file_with_fallback for {file_id}: {e}")
             return None, None
 
     def ensure_file_available(self, file_id: str) -> tuple[str, str]:
@@ -177,9 +183,12 @@ class FilesAPIService:
             self.logger.info(f"Re-uploaded {file_id} -> {new_file_id}")
             return new_file_id, new_file_uri
 
-        except Exception as e:
+        except OSError as e:
             self.logger.error(f"Failed to re-upload {file_id}: {e}")
-            raise FileOperationError(f"Failed to re-upload expired file: {e}")
+            raise FileOperationError(f"Failed to re-upload expired file: {e}") from e
+        except Exception as e:
+            self.logger.critical(f"Unexpected error re-uploading {file_id}: {e}")
+            raise
 
     def create_file_data_part(self, file_id: str) -> dict[str, Any]:
         """

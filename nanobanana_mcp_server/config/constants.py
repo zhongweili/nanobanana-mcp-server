@@ -55,9 +55,9 @@ MODEL_RESOLUTION_LIMITS = {
     "pro": 3840,
 }
 
-# Aspect ratio limits
-MIN_ASPECT_RATIO = 0.1
-MAX_ASPECT_RATIO = 10.0
+# Aspect ratio limits (tightened for better usability)
+MIN_ASPECT_RATIO = 0.25  # 1:4 ratio
+MAX_ASPECT_RATIO = 4.0  # 4:1 ratio
 
 # Template categories
 TEMPLATE_CATEGORIES = {
