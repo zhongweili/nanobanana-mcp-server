@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple, Dict, Any
 from fastmcp.utilities.types import Image as MCPImage
 from .gemini_client import GeminiClient
 from .image_storage_service import ImageStorageService, StoredImageInfo
+from .resolution_manager import ResolutionManager
 from ..utils.image_utils import validate_image_format, optimize_image_size
 from ..config.settings import GeminiConfig
 from ..core.progress_tracker import ProgressContext
@@ -21,6 +22,7 @@ class ImageService:
         self.gemini_client = gemini_client
         self.config = config
         self.storage_service = storage_service
+        self.resolution_manager = ResolutionManager(config)
         self.logger = logging.getLogger(__name__)
 
     def generate_images(
@@ -31,6 +33,7 @@ class ImageService:
         system_instruction: Optional[str] = None,
         input_images: Optional[List[Tuple[str, str]]] = None,
         aspect_ratio: Optional[str] = None,
+        resolution: Optional[str] = None,
         use_storage: bool = True,
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
@@ -43,6 +46,7 @@ class ImageService:
             system_instruction: Optional system instruction
             input_images: List of (base64, mime_type) tuples for input images
             aspect_ratio: Optional aspect ratio string (e.g., "16:9")
+            resolution: Optional resolution string (e.g., "high", "1024x768", "2k")
             use_storage: If True, store images and return resource links with thumbnails
 
         Returns:
@@ -53,6 +57,19 @@ class ImageService:
             "image_generation", f"Generating {n} image(s)...", {"prompt": prompt[:100], "count": n}
         ) as progress:
             progress.update(10, "Preparing generation request...")
+
+            # Parse and validate resolution
+            parsed_resolution = None
+            if resolution:
+                try:
+                    parsed_resolution = self.resolution_manager.parse_resolution(
+                        resolution, 
+                        model_tier="flash"
+                    )
+                    self.logger.info(f"Using resolution: {parsed_resolution}")
+                except Exception as e:
+                    self.logger.warning(f"Invalid resolution '{resolution}': {e}, using default")
+                    parsed_resolution = None
 
             # Build content list
             contents = []
@@ -85,7 +102,7 @@ class ImageService:
                     progress.update(20 + (i * 60 // n), f"Generating image {i + 1}/{n}...")
 
                     response = self.gemini_client.generate_content(
-                        contents, aspect_ratio=aspect_ratio
+                        contents, aspect_ratio=aspect_ratio, resolution=parsed_resolution
                     )
                     images = self.gemini_client.extract_images(response)
 
@@ -105,6 +122,7 @@ class ImageService:
                             "negative_prompt": negative_prompt,
                             "system_instruction": system_instruction,
                             "aspect_ratio": aspect_ratio,
+                            "resolution": parsed_resolution,
                         }
 
                         if use_storage and self.storage_service:
@@ -185,6 +203,7 @@ class ImageService:
         instruction: str,
         base_image_b64: str,
         mime_type: str = "image/png",
+        resolution: Optional[str] = None,
         use_storage: bool = True,
     ) -> Tuple[List[MCPImage], int]:
         """
@@ -194,6 +213,7 @@ class ImageService:
             instruction: Natural language editing instruction
             base_image_b64: Base64 encoded source image
             mime_type: MIME type of source image
+            resolution: Optional resolution string for output
             use_storage: If True, store edited images and return resource links with thumbnails
 
         Returns:
@@ -205,6 +225,18 @@ class ImageService:
         ) as progress:
             try:
                 progress.update(10, "Validating input image...")
+
+                # Parse and validate resolution for edit
+                parsed_resolution = None
+                if resolution:
+                    try:
+                        parsed_resolution = self.resolution_manager.parse_resolution(
+                            resolution,
+                            model_tier="flash"
+                        )
+                        self.logger.info(f"Using resolution for edit: {parsed_resolution}")
+                    except Exception as e:
+                        self.logger.warning(f"Invalid resolution '{resolution}': {e}, using default")
 
                 # Validate and prepare image
                 validate_image_format(mime_type)
@@ -218,7 +250,7 @@ class ImageService:
                 progress.update(40, "Sending edit request to Gemini API...")
 
                 # Generate edited image
-                response = self.gemini_client.generate_content(contents)
+                response = self.gemini_client.generate_content(contents, resolution=parsed_resolution)
                 image_bytes_list = self.gemini_client.extract_images(response)
 
                 progress.update(70, "Processing edited image(s)...")
@@ -238,6 +270,7 @@ class ImageService:
                         "result_mime_type": f"image/{self.config.default_image_format}",
                         "synthid_watermark": True,
                         "edit_index": i + 1,
+                        "resolution": parsed_resolution,
                     }
 
                     if use_storage and self.storage_service:

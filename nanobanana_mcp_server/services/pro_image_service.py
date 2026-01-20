@@ -11,6 +11,7 @@ from ..core.progress_tracker import ProgressContext
 from ..utils.image_utils import validate_image_format
 from .gemini_client import GeminiClient
 from .image_storage_service import ImageStorageService
+from .resolution_manager import ResolutionManager
 
 
 class ProImageService:
@@ -25,6 +26,7 @@ class ProImageService:
         self.gemini_client = gemini_client
         self.config = config
         self.storage_service = storage_service
+        self.resolution_manager = ResolutionManager(config)
         self.logger = logging.getLogger(__name__)
 
     def generate_images(
@@ -85,6 +87,20 @@ class ProImageService:
                 f"grounding={enable_grounding}"
             )
 
+            # Parse and validate resolution with Pro model support
+            parsed_resolution = resolution if resolution else "high"
+            if resolution:
+                try:
+                    # Validate resolution is supported by Pro model
+                    validated = self.resolution_manager.parse_resolution(
+                        resolution,
+                        model_tier="pro"
+                    )
+                    self.logger.info(f"Pro model using resolution: {validated}")
+                except Exception as e:
+                    self.logger.warning(f"Invalid resolution '{resolution}': {e}, using 'high'")
+                    parsed_resolution = "high"
+
             progress.update(10, "Preparing generation request...")
 
             # Build content with Pro-optimized prompt
@@ -132,7 +148,7 @@ class ProImageService:
                     # Note: thinking_level is NOT supported by gemini-3-pro-image-preview
                     # Resolution is passed and mapped to image_size in gemini_client
                     gen_config = {
-                        "resolution": resolution,  # Will be mapped to image_size (1K, 2K, 4K)
+                        "resolution": parsed_resolution,  # Will be mapped to image_size (1K, 2K, 4K)
                     }
 
                     # Grounding is controlled via prompt/system instruction
@@ -151,7 +167,7 @@ class ProImageService:
                             "model_tier": "pro",
                             "response_index": i + 1,
                             "image_index": j + 1,
-                            "resolution": resolution,
+                            "resolution": parsed_resolution,
                             "thinking_level": thinking_level.value,
                             "media_resolution": media_resolution.value,
                             "grounding_enabled": enable_grounding,
@@ -270,6 +286,18 @@ class ProImageService:
                     f"Pro edit: instruction='{instruction[:50]}...', "
                     f"thinking={thinking_level.value}"
                 )
+
+                # Parse and validate resolution for edit
+                parsed_resolution = resolution
+                try:
+                    validated = self.resolution_manager.parse_resolution(
+                        resolution,
+                        model_tier="pro"
+                    )
+                    self.logger.info(f"Pro edit using resolution: {validated}") 
+                except Exception as e:
+                    self.logger.warning(f"Invalid resolution '{resolution}': {e}, using 'high'")
+                    parsed_resolution = "high"
 
                 # Validate image
                 validate_image_format(mime_type)

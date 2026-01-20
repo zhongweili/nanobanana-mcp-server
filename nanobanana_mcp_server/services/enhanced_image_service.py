@@ -72,6 +72,7 @@ class EnhancedImageService:
         system_instruction: Optional[str] = None,
         input_images: Optional[List[Tuple[str, str]]] = None,
         aspect_ratio: Optional[str] = None,
+        resolution: Optional[str] = None,
         output_path: Optional[str] = None,
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
@@ -170,7 +171,8 @@ class EnhancedImageService:
             raise
 
     def edit_image_by_file_id(
-        self, file_id: str, edit_prompt: str
+        self, file_id: str, edit_prompt: str,
+        resolution: Optional[str] = None
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Edit image by file_id following workflows.md pattern.
@@ -235,7 +237,8 @@ class EnhancedImageService:
             raise
 
     def edit_image_by_path(
-        self, instruction: str, file_path: str
+        self, instruction: str, file_path: str,
+        resolution: Optional[str] = None
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Edit image from local file path following workflows.md pattern for path-based editing.

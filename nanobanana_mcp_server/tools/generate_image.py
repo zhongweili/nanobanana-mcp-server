@@ -13,6 +13,7 @@ from ..config.constants import MAX_INPUT_IMAGES
 from ..config.settings import ModelTier, ThinkingLevel
 from ..core.exceptions import ValidationError
 from ..utils.validation_utils import validate_output_path
+from ..services.resolution_manager import ResolutionManager
 
 
 def register_generate_image_tool(server: FastMCP):
@@ -86,6 +87,13 @@ def register_generate_image_tool(server: FastMCP):
                 "4K and 2K only available with 'pro' model. Default: 'high'."
             ),
         ] = "high",
+        size: Annotated[
+            str | None,
+            Field(
+                description="[DEPRECATED - Use 'resolution' instead] Output size preset. "
+                "Mapped to resolution for backward compatibility."
+            ),
+        ] = None,
         thinking_level: Annotated[
             str | None,
             Field(
@@ -133,6 +141,15 @@ def register_generate_image_tool(server: FastMCP):
         """
         logger = logging.getLogger(__name__)
 
+        # Handle backward compatibility for 'size' parameter
+        if size and not resolution:
+            logger.info(f"Using deprecated 'size' parameter: {size}, mapping to 'resolution'")
+            resolution = size
+        
+        # Initialize ResolutionManager
+        from ..config.settings import GeminiConfig
+        resolution_manager = ResolutionManager(GeminiConfig())
+        
         try:
             # Construct input_image_paths list from individual parameters
             input_image_paths = []
@@ -168,7 +185,22 @@ def register_generate_image_tool(server: FastMCP):
                 logger.warning(f"Invalid model_tier '{model_tier}', defaulting to AUTO")
                 tier = ModelTier.AUTO
 
-            # Validate thinking level for Pro model
+            # Parse and validate resolution
+            parsed_resolution = resolution
+            if resolution:
+                try:
+                    # Validate resolution based on selected tier
+                    model_tier_str = "pro" if tier == ModelTier.PRO else "flash"
+                    parsed_resolution = resolution_manager.parse_resolution(
+                        resolution,
+                        model_tier=model_tier_str
+                    )
+                    logger.info(f"Validated resolution: {parsed_resolution}")
+                except Exception as e:
+                    logger.warning(f"Invalid resolution '{resolution}': {e}, using default")
+                    parsed_resolution = "high"
+            
+# Validate thinking level for Pro model
             try:
                 if thinking_level:
                     _ = ThinkingLevel(thinking_level)  # Just validate
@@ -186,7 +218,7 @@ def register_generate_image_tool(server: FastMCP):
                 prompt=prompt,
                 requested_tier=tier,
                 n=n,
-                resolution=resolution,
+                resolution=parsed_resolution,
                 input_images=input_image_paths,
                 thinking_level=thinking_level,
                 enable_grounding=enable_grounding,
@@ -283,7 +315,7 @@ def register_generate_image_tool(server: FastMCP):
                     thumbnail_images, metadata = selected_service.generate_images(
                         prompt=prompt,
                         n=n,
-                        resolution=resolution,
+                        resolution=parsed_resolution,
                         thinking_level=ThinkingLevel(thinking_level) if thinking_level else None,
                         enable_grounding=enable_grounding,
                         negative_prompt=negative_prompt,
@@ -301,6 +333,7 @@ def register_generate_image_tool(server: FastMCP):
                         system_instruction=system_instruction,
                         input_images=input_images,
                         aspect_ratio=aspect_ratio,
+                        resolution=parsed_resolution,
                         output_path=output_path,
                     )
 
@@ -331,7 +364,7 @@ def register_generate_image_tool(server: FastMCP):
                 # Add Pro-specific information
                 if selected_tier == ModelTier.PRO:
                     summary_lines.append(f"🧠 **Thinking Level**: {thinking_level}")
-                    summary_lines.append(f"📏 **Resolution**: {resolution}")
+                    summary_lines.append(f"📏 **Resolution**: {parsed_resolution}")
                     if enable_grounding:
                         summary_lines.append("🔍 **Grounding**: Enabled (Google Search)")
                 summary_lines.append("")  # Blank line

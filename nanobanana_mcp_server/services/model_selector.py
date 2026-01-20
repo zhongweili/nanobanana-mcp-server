@@ -124,14 +124,44 @@ class ModelSelector:
 
         # Resolution parameter analysis
         resolution = kwargs.get("resolution", "").lower()
-        if resolution in ["4k", "high", "2k"]:
-            quality_score += 3
-        elif resolution == "4k":
+        
+        # Parse resolution to determine requirements
+        if resolution:
             # 4K explicitly requires Pro model
-            self.logger.info("4K resolution requested - Pro model required")
-            return ModelTier.PRO
-
-        # Batch size consideration
+            if "4k" in resolution or "3840" in resolution or "4096" in resolution:
+                self.logger.info("4K resolution requested - Pro model required")
+                return ModelTier.PRO
+            
+            # 2K and high resolutions favor Pro
+            elif "2k" in resolution or "2048" in resolution:
+                quality_score += 2
+                self.logger.debug("2K resolution requested, favoring Pro model")
+            
+            # High resolution favors quality
+            elif resolution in ["high", "hd", "full"]:
+                quality_score += 1
+            
+            # Check for specific dimensions
+            elif "x" in resolution:
+                try:
+                    width, height = resolution.split("x")
+                    max_dim = max(int(width), int(height))
+                    
+                    if max_dim >= 3840:
+                        # 4K dimensions require Pro
+                        self.logger.info(f"Resolution {resolution} requires Pro model (4K)")
+                        return ModelTier.PRO
+                    elif max_dim >= 2048:
+                        # 2K dimensions favor Pro
+                        quality_score += 2
+                        self.logger.debug(f"Resolution {resolution} favors Pro model (2K)")
+                    elif max_dim >= 1920:
+                        # Full HD favors quality
+                        quality_score += 1
+                except:
+                    pass  # Invalid format, ignore
+        
+# Batch size consideration
         n = kwargs.get("n", 1)
         if n > 2:
             # Multiple images favor speed
@@ -190,6 +220,7 @@ class ModelSelector:
                 "name": "Gemini 3 Pro Image",
                 "model_id": "gemini-3-pro-image-preview",
                 "max_resolution": "4K (3840px)",
+                "supported_resolutions": ["1k", "2k", "4k", "high", "3840x2160", "custom up to 4K"],
                 "features": [
                     "4K resolution",
                     "Google Search grounding",
@@ -204,7 +235,8 @@ class ModelSelector:
                 "tier": "flash",
                 "name": "Gemini 2.5 Flash Image",
                 "model_id": "gemini-2.5-flash-image",
-                "max_resolution": "1024px",
+                "max_resolution": "2048px (2K)",
+                "supported_resolutions": ["1k", "2k", "1024x1024", "2048x2048", "custom up to 2K"],
                 "features": [
                     "Very fast generation",
                     "Low latency",
