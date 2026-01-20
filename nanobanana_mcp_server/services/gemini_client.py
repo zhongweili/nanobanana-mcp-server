@@ -136,17 +136,57 @@ class GeminiClient:
                 if aspect_ratio:
                     image_config_kwargs["aspect_ratio"] = aspect_ratio
 
-                # Map resolution to image_size for Pro model
+                # Map resolution to image_size for Pro and Flash models
                 resolution = config.get("resolution") if config else None
                 if resolution:
-                    # Map resolution names to API image_size values
-                    resolution_map = {
-                        "4k": "4K",
-                        "2k": "2K",
-                        "1k": "1K",
-                        "high": "1K",  # Default high to 1K
-                    }
-                    image_size = resolution_map.get(resolution.lower(), "1K")
+                    # Handle different resolution formats
+                    if isinstance(resolution, str):
+                        # Map resolution names to API image_size values
+                        resolution_map = {
+                            "4k": "4K",
+                            "2k": "2K", 
+                            "1k": "1K",
+                            "high": "1K",  # Default high to 1K
+                            "medium": "1K",  # Medium maps to 1K
+                            "low": "1K",  # Low still uses 1K (minimum for Pro)
+                        }
+                        
+                        # Check for dimension format (e.g., "1920x1080")
+                        if "x" in resolution.lower():
+                            try:
+                                width, height = resolution.lower().split("x")
+                                width, height = int(width), int(height)
+                                max_dim = max(width, height)
+                                
+                                # Map to appropriate size tier
+                                if max_dim >= 3840:
+                                    image_size = "4K"
+                                elif max_dim >= 2048:
+                                    image_size = "2K"
+                                else:
+                                    image_size = "1K"
+                                    
+                                self.logger.info(f"Mapped {resolution} to image_size={image_size}")
+                            except:
+                                # Fallback for invalid dimension format
+                                image_size = resolution_map.get(resolution.lower(), "1K")
+                        else:
+                            image_size = resolution_map.get(resolution.lower(), "1K")
+                    elif isinstance(resolution, tuple) and len(resolution) == 2:
+                        # Handle tuple format (width, height)
+                        width, height = resolution
+                        max_dim = max(width, height)
+                        
+                        if max_dim >= 3840:
+                            image_size = "4K"
+                        elif max_dim >= 2048:
+                            image_size = "2K"
+                        else:
+                            image_size = "1K"
+                    else:
+                        # Default fallback
+                        image_size = "1K"
+                        
                     image_config_kwargs["image_size"] = image_size
                     self.logger.info(f"Setting image_size={image_size} for resolution={resolution}")
 
@@ -209,9 +249,25 @@ class GeminiClient:
             # thinking_level is NOT available for this model
             if "thinking_level" in config:
                 self.logger.info("Note: thinking_level is not supported by gemini-3-pro-image-preview, ignoring")
+            
+            # Handle resolution variants (already processed in generate_content)
+            if "resolution" in config:
+                self.logger.debug(f"Resolution parameter will be mapped to image_size: {config['resolution']}")
 
         else:
-            # Flash model - warn if Pro parameters are used
+            # Flash model - handle resolution within limits
+            if "resolution" in config:
+                resolution = config["resolution"]
+                # Flash supports up to 2048px (2K) as per Phase 1
+                if isinstance(resolution, str):
+                    if resolution.lower() in ["4k", "3840", "4096"]:
+                        self.logger.warning(
+                            f"Flash model doesn't support 4K resolution, will use maximum 2K"
+                        )
+                    else:
+                        self.logger.debug(f"Flash model using resolution: {resolution}")
+                        
+            # Warn if Pro parameters are used
             pro_params = ["thinking_level", "media_resolution", "output_resolution"]
             used_pro_params = [p for p in pro_params if p in config]
             if used_pro_params:
