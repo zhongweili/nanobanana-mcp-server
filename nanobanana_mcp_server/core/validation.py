@@ -1,8 +1,15 @@
 """Input validation utilities."""
 
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple, Union
 import re
-from ..config.constants import SUPPORTED_IMAGE_TYPES
+from ..config.constants import (
+    SUPPORTED_IMAGE_TYPES,
+    RESOLUTION_PRESETS,
+    MIN_ASPECT_RATIO,
+    MAX_ASPECT_RATIO,
+    BYTES_PER_PIXEL_RGBA,
+    IMAGE_OVERHEAD_MULTIPLIER,
+)
 from .exceptions import ValidationError
 
 
@@ -123,3 +130,111 @@ def validate_edit_instruction(instruction: str) -> None:
     for pattern in harmful_patterns:
         if re.search(pattern, instruction, re.IGNORECASE):
             raise ValidationError("Edit instruction contains inappropriate content")
+
+
+def validate_resolution(
+    resolution: Union[str, Dict, List, None],
+    model_tier: str,
+    max_flash: int = 2048,
+    max_pro: int = 3840
+) -> None:
+    """Validate resolution parameter format and values.
+
+    Args:
+        resolution: Resolution specification in various formats
+        model_tier: Model tier ("flash" or "pro")
+        max_flash: Maximum resolution for Flash model
+        max_pro: Maximum resolution for Pro model
+
+    Raises:
+        ValidationError: If resolution is invalid
+    """
+    if resolution is None:
+        return
+
+    # String preset validation
+    if isinstance(resolution, str):
+        # Check if it's a valid preset or dimension string
+        if resolution not in RESOLUTION_PRESETS and "x" not in resolution:
+            if resolution not in ["high", "medium", "low", "original", "1024", "4k", "2k", "1k"]:
+                raise ValidationError(f"Invalid resolution preset: {resolution}")
+
+    # Dictionary validation
+    elif isinstance(resolution, dict):
+        if "width" in resolution and "height" in resolution:
+            validate_dimensions(resolution["width"], resolution["height"])
+        elif "aspect_ratio" in resolution:
+            if "target_size" not in resolution and "max_dimension" not in resolution:
+                raise ValidationError(
+                    "aspect_ratio requires either target_size or max_dimension"
+                )
+        else:
+            raise ValidationError(
+                "Dictionary resolution must have either width/height or aspect_ratio"
+            )
+
+    # List validation
+    elif isinstance(resolution, list):
+        if len(resolution) != 2:
+            raise ValidationError("List resolution must have exactly 2 elements [width, height]")
+        validate_dimensions(resolution[0], resolution[1])
+
+    else:
+        raise ValidationError(f"Invalid resolution type: {type(resolution)}")
+
+
+def validate_dimensions(width: int, height: int) -> None:
+    """Validate image dimensions.
+
+    Args:
+        width: Image width in pixels
+        height: Image height in pixels
+
+    Raises:
+        ValidationError: If dimensions are invalid
+    """
+    if not isinstance(width, int) or not isinstance(height, int):
+        raise ValidationError("Dimensions must be integers")
+
+    if width <= 0 or height <= 0:
+        raise ValidationError("Dimensions must be positive")
+
+    if width > 3840 or height > 3840:
+        raise ValidationError("Maximum dimension is 3840 pixels")
+
+    # Check aspect ratio
+    aspect_ratio = width / height
+    if aspect_ratio < MIN_ASPECT_RATIO or aspect_ratio > MAX_ASPECT_RATIO:
+        raise ValidationError(
+            f"Aspect ratio {aspect_ratio:.2f} outside valid range "
+            f"({MIN_ASPECT_RATIO}-{MAX_ASPECT_RATIO})"
+        )
+
+
+def validate_memory_constraints(
+    width: int,
+    height: int,
+    format: str = "png",
+    limit_mb: int = 2048
+) -> None:
+    """Validate that image won't exceed memory constraints.
+
+    Args:
+        width: Image width
+        height: Image height
+        format: Image format
+        limit_mb: Memory limit in MB
+
+    Raises:
+        ValidationError: If memory usage would exceed limit
+    """
+    # Estimate memory usage
+    bytes_per_pixel = BYTES_PER_PIXEL_RGBA if format in ["png", "webp"] else 3
+
+    estimated_bytes = width * height * bytes_per_pixel * IMAGE_OVERHEAD_MULTIPLIER
+    estimated_mb = estimated_bytes / (1024 * 1024)
+
+    if estimated_mb > limit_mb:
+        raise ValidationError(
+            f"Estimated memory usage ({estimated_mb:.1f}MB) exceeds limit ({limit_mb}MB)"
+        )

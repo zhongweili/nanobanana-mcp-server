@@ -1,6 +1,6 @@
 """Additional validation utilities beyond core validation."""
 
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 from pathlib import Path
 import re
 import os
@@ -247,6 +247,133 @@ def validate_aspect_ratio_string(aspect_ratio: str) -> None:
             f"Unsupported aspect_ratio: '{aspect_ratio}'. "
             f"Supported values: {', '.join(SUPPORTED_ASPECT_RATIOS)}"
         )
+
+
+def validate_resolution_string(resolution_str: str) -> Tuple[int, int]:
+    """Validate and parse resolution string format.
+
+    Formats supported:
+    - "WxH" (e.g., "1920x1080")
+    - "WIDTHxHEIGHT" (e.g., "3840x2160")
+
+    Args:
+        resolution_str: Resolution string
+
+    Returns:
+        Tuple of (width, height)
+
+    Raises:
+        ValidationError: If format is invalid
+    """
+    if not isinstance(resolution_str, str):
+        raise ValidationError("Resolution must be a string")
+
+    # Try to parse "WxH" format
+    if "x" in resolution_str.lower():
+        parts = resolution_str.lower().split("x")
+        if len(parts) != 2:
+            raise ValidationError(f"Invalid resolution format: {resolution_str}")
+
+        try:
+            width = int(parts[0].strip())
+            height = int(parts[1].strip())
+            return width, height
+        except ValueError:
+            raise ValidationError(f"Invalid resolution dimensions: {resolution_str}")
+
+    raise ValidationError(f"Unsupported resolution format: {resolution_str}")
+
+
+def validate_resolution_dimensions(
+    width: Any,
+    height: Any,
+    min_size: int = 16,
+    max_size: int = 3840
+) -> Tuple[int, int]:
+    """Validate resolution dimensions are within bounds.
+
+    Args:
+        width: Image width
+        height: Image height
+        min_size: Minimum dimension size
+        max_size: Maximum dimension size
+
+    Returns:
+        Validated (width, height) tuple
+
+    Raises:
+        ValidationError: If dimensions are invalid
+    """
+    # Type validation
+    try:
+        width = int(width)
+        height = int(height)
+    except (TypeError, ValueError):
+        raise ValidationError("Width and height must be integers")
+
+    # Range validation
+    if width < min_size or height < min_size:
+        raise ValidationError(f"Minimum dimension is {min_size}px")
+
+    if width > max_size or height > max_size:
+        raise ValidationError(f"Maximum dimension is {max_size}px")
+
+    return width, height
+
+
+def validate_custom_resolution(
+    resolution: Union[str, Dict, List],
+    model_tier: str = "flash"
+) -> Tuple[int, int]:
+    """Validate and parse custom resolution specification.
+
+    Args:
+        resolution: Custom resolution in various formats
+        model_tier: Model tier for limit validation
+
+    Returns:
+        Tuple of (width, height)
+
+    Raises:
+        ValidationError: If resolution is invalid
+    """
+    max_size = 3840 if model_tier == "pro" else 2048
+
+    # String format: "1920x1080" or preset name
+    if isinstance(resolution, str):
+        if "x" in resolution.lower():
+            return validate_resolution_string(resolution)
+        else:
+            # Check if it's a preset
+            from ..config.constants import RESOLUTION_PRESETS
+            if resolution.lower() in RESOLUTION_PRESETS:
+                return RESOLUTION_PRESETS[resolution.lower()]
+            else:
+                raise ValidationError(f"Unknown resolution preset: {resolution}")
+
+    # Dictionary format: {"width": 1920, "height": 1080}
+    elif isinstance(resolution, dict):
+        if "width" in resolution and "height" in resolution:
+            return validate_resolution_dimensions(
+                resolution["width"],
+                resolution["height"],
+                max_size=max_size
+            )
+        else:
+            raise ValidationError("Dictionary must have 'width' and 'height' keys")
+
+    # List format: [1920, 1080]
+    elif isinstance(resolution, list):
+        if len(resolution) != 2:
+            raise ValidationError("List must have exactly 2 elements [width, height]")
+        return validate_resolution_dimensions(
+            resolution[0],
+            resolution[1],
+            max_size=max_size
+        )
+
+    else:
+        raise ValidationError(f"Unsupported resolution type: {type(resolution)}")
 
 
 def resolve_output_path(
