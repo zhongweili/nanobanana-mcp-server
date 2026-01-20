@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Dict, List, Tuple, Optional
 import base64
 from PIL import Image
 from io import BytesIO
@@ -166,6 +166,177 @@ def create_thumbnail_base64(image_b64: str, size: Tuple[int, int] = (256, 256)) 
     except Exception as e:
         logging.error(f"Failed to create thumbnail: {e}")
         raise ImageProcessingError(f"Thumbnail creation failed: {e}")
+
+
+def create_multiple_thumbnails(
+    image_bytes: bytes,
+    sizes: List[int] = None,
+    format: str = "JPEG",
+    quality: int = 85
+) -> Dict[int, bytes]:
+    """Create multiple thumbnail sizes from image data.
+
+    Args:
+        image_bytes: Original image data
+        sizes: List of thumbnail sizes (max dimension)
+        format: Output format (JPEG, PNG, WEBP)
+        quality: Compression quality for JPEG/WEBP
+
+    Returns:
+        Dictionary mapping size to thumbnail bytes
+    """
+    if sizes is None:
+        sizes = [256, 512, 1024]
+
+    thumbnails = {}
+
+    try:
+        image = Image.open(BytesIO(image_bytes))
+        orig_width, orig_height = image.size
+
+        for size in sizes:
+            # Skip if image is already smaller
+            if orig_width <= size and orig_height <= size:
+                continue
+
+            # Create a copy for resizing
+            thumb_image = image.copy()
+
+            # Calculate new dimensions
+            thumb_image.thumbnail((size, size), Image.Resampling.LANCZOS)
+
+            # Convert to RGB for JPEG/WEBP if necessary
+            if format in ("JPEG", "WEBP") and thumb_image.mode in ("RGBA", "LA", "P"):
+                rgb_image = Image.new("RGB", thumb_image.size, (255, 255, 255))
+                if thumb_image.mode == "P":
+                    thumb_image = thumb_image.convert("RGBA")
+                if thumb_image.mode in ("RGBA", "LA"):
+                    rgb_image.paste(thumb_image, mask=thumb_image.split()[-1])
+                else:
+                    rgb_image.paste(thumb_image)
+                thumb_image = rgb_image
+
+            # Save to bytes
+            output = BytesIO()
+            if format == "JPEG":
+                thumb_image.save(output, format="JPEG", quality=quality, optimize=True)
+            elif format == "WEBP":
+                thumb_image.save(output, format="WEBP", quality=quality, method=6)
+            else:
+                thumb_image.save(output, format="PNG", optimize=True)
+
+            output.seek(0)
+            thumbnails[size] = output.read()
+
+    except Exception as e:
+        logging.error(f"Failed to create multiple thumbnails: {e}")
+        raise ImageProcessingError(f"Multiple thumbnail creation failed: {e}")
+
+    return thumbnails
+
+
+def resize_image(
+    image_bytes: bytes,
+    max_width: int,
+    max_height: int,
+    maintain_aspect: bool = True
+) -> bytes:
+    """Resize an image to fit within specified dimensions.
+
+    Args:
+        image_bytes: Original image data
+        max_width: Maximum width
+        max_height: Maximum height
+        maintain_aspect: Whether to maintain aspect ratio
+
+    Returns:
+        Resized image bytes
+    """
+    try:
+        image = Image.open(BytesIO(image_bytes))
+
+        if maintain_aspect:
+            # Calculate scaling factor
+            width_ratio = max_width / image.width
+            height_ratio = max_height / image.height
+            scale_factor = min(width_ratio, height_ratio)
+
+            if scale_factor < 1:
+                new_width = int(image.width * scale_factor)
+                new_height = int(image.height * scale_factor)
+                image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        else:
+            # Resize to exact dimensions
+            image = image.resize((max_width, max_height), Image.Resampling.LANCZOS)
+
+        # Save to bytes
+        output = BytesIO()
+        # Detect format from original
+        format_name = image.format or "PNG"
+        image.save(output, format=format_name, optimize=True)
+        output.seek(0)
+
+        return output.read()
+
+    except Exception as e:
+        logging.error(f"Failed to resize image: {e}")
+        raise ImageProcessingError(f"Image resize failed: {e}")
+
+
+def estimate_file_size(
+    width: int,
+    height: int,
+    format: str = "png",
+    quality: int = 85
+) -> int:
+    """Estimate the file size of an image.
+
+    Args:
+        width: Image width
+        height: Image height
+        format: Image format
+        quality: Compression quality (for JPEG/WEBP)
+
+    Returns:
+        Estimated file size in bytes
+    """
+    # Base calculation: width * height * bytes_per_pixel
+    total_pixels = width * height
+
+    # Estimation factors based on format and quality
+    if format.lower() == "png":
+        # PNG: typically 2-4 bytes per pixel for photos
+        bytes_per_pixel = 3.0
+    elif format.lower() in ("jpeg", "jpg"):
+        # JPEG: varies greatly with quality
+        if quality >= 95:
+            bytes_per_pixel = 1.5
+        elif quality >= 85:
+            bytes_per_pixel = 0.8
+        elif quality >= 75:
+            bytes_per_pixel = 0.5
+        else:
+            bytes_per_pixel = 0.3
+    elif format.lower() == "webp":
+        # WebP: better compression than JPEG
+        if quality >= 95:
+            bytes_per_pixel = 1.2
+        elif quality >= 85:
+            bytes_per_pixel = 0.6
+        elif quality >= 75:
+            bytes_per_pixel = 0.4
+        else:
+            bytes_per_pixel = 0.25
+    else:
+        # Default conservative estimate
+        bytes_per_pixel = 3.0
+
+    estimated_size = int(total_pixels * bytes_per_pixel)
+
+    # Add some overhead for metadata
+    estimated_size += 1024  # 1KB for headers/metadata
+
+    return estimated_size
 
 
 def estimate_compression_ratio(original_b64: str, compressed_b64: str) -> float:
