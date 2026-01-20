@@ -77,7 +77,7 @@ class ProImageService:
         with ProgressContext(
             "pro_image_generation",
             f"Generating {n} high-quality image(s) with Gemini 3 Pro...",
-            {"prompt": prompt[:100], "count": n, "resolution": resolution}
+            {"prompt": prompt[:100], "count": n, "resolution": resolution},
         ) as progress:
             progress.update(5, "Configuring Pro model parameters...")
 
@@ -93,8 +93,7 @@ class ProImageService:
                 try:
                     # Validate resolution is supported by Pro model
                     validated = self.resolution_manager.parse_resolution(
-                        resolution,
-                        model_tier="pro"
+                        resolution, model_tier="pro"
                     )
                     self.logger.info(f"Pro model using resolution: {validated}")
                 except Exception as e:
@@ -117,9 +116,7 @@ class ProImageService:
                 )
 
             # Enhanced prompt for Pro model
-            enhanced_prompt = self._enhance_prompt_for_pro(
-                prompt, resolution, negative_prompt
-            )
+            enhanced_prompt = self._enhance_prompt_for_pro(prompt, resolution, negative_prompt)
             contents.append(enhanced_prompt)
 
             # Add input images if provided (Pro benefits from images-first)
@@ -140,8 +137,7 @@ class ProImageService:
             for i in range(n):
                 try:
                     progress.update(
-                        20 + (i * 70 // n),
-                        f"Generating high-quality image {i + 1}/{n}..."
+                        20 + (i * 70 // n), f"Generating high-quality image {i + 1}/{n}..."
                     )
 
                     # Build generation config for Pro model
@@ -154,10 +150,7 @@ class ProImageService:
                     # Grounding is controlled via prompt/system instruction
                     # not as a direct API parameter
 
-                    response = self.gemini_client.generate_content(
-                        contents,
-                        config=gen_config
-                    )
+                    response = self.gemini_client.generate_content(contents, config=gen_config)
                     images = self.gemini_client.extract_images(response)
 
                     for j, image_bytes in enumerate(images):
@@ -181,9 +174,7 @@ class ProImageService:
                         # Storage handling
                         if use_storage and self.storage_service:
                             stored_info = self.storage_service.store_image(
-                                image_bytes,
-                                f"image/{self.config.default_image_format}",
-                                metadata
+                                image_bytes, f"image/{self.config.default_image_format}", metadata
                             )
 
                             thumbnail_b64 = self.storage_service.get_thumbnail_base64(
@@ -194,18 +185,20 @@ class ProImageService:
                                 thumbnail_image = MCPImage(data=thumbnail_bytes, format="jpeg")
                                 all_images.append(thumbnail_image)
 
-                            metadata.update({
-                                "storage_id": stored_info.id,
-                                "full_image_uri": f"file://images/{stored_info.id}",
-                                "full_path": stored_info.full_path,
-                                "thumbnail_uri": f"file://images/{stored_info.id}/thumbnail",
-                                "size_bytes": stored_info.size_bytes,
-                                "thumbnail_size_bytes": stored_info.thumbnail_size_bytes,
-                                "width": stored_info.width,
-                                "height": stored_info.height,
-                                "expires_at": stored_info.expires_at,
-                                "is_stored": True,
-                            })
+                            metadata.update(
+                                {
+                                    "storage_id": stored_info.id,
+                                    "full_image_uri": f"file://images/{stored_info.id}",
+                                    "full_path": stored_info.full_path,
+                                    "thumbnail_uri": f"file://images/{stored_info.id}/thumbnail",
+                                    "size_bytes": stored_info.size_bytes,
+                                    "thumbnail_size_bytes": stored_info.thumbnail_size_bytes,
+                                    "width": stored_info.width,
+                                    "height": stored_info.height,
+                                    "expires_at": stored_info.expires_at,
+                                    "is_stored": True,
+                                }
+                            )
 
                             all_metadata.append(metadata)
 
@@ -217,8 +210,7 @@ class ProImageService:
                         else:
                             # Direct return without storage
                             mcp_image = MCPImage(
-                                data=image_bytes,
-                                format=self.config.default_image_format
+                                data=image_bytes, format=self.config.default_image_format
                             )
                             all_images.append(mcp_image)
                             all_metadata.append(metadata)
@@ -277,7 +269,7 @@ class ProImageService:
         with ProgressContext(
             "pro_image_editing",
             "Editing image with Gemini 3 Pro...",
-            {"instruction": instruction[:100]}
+            {"instruction": instruction[:100]},
         ) as progress:
             try:
                 progress.update(10, "Configuring Pro editing parameters...")
@@ -291,10 +283,9 @@ class ProImageService:
                 parsed_resolution = resolution
                 try:
                     validated = self.resolution_manager.parse_resolution(
-                        resolution,
-                        model_tier="pro"
+                        resolution, model_tier="pro"
                     )
-                    self.logger.info(f"Pro edit using resolution: {validated}") 
+                    self.logger.info(f"Pro edit using resolution: {validated}")
                 except Exception as e:
                     self.logger.warning(f"Invalid resolution '{resolution}': {e}, using 'high'")
                     parsed_resolution = "high"
@@ -312,9 +303,7 @@ class ProImageService:
                 )
 
                 # Create parts
-                image_parts = self.gemini_client.create_image_parts(
-                    [base_image_b64], [mime_type]
-                )
+                image_parts = self.gemini_client.create_image_parts([base_image_b64], [mime_type])
                 contents = [*image_parts, enhanced_instruction]
 
                 progress.update(40, "Sending edit request to Gemini 3 Pro API...")
@@ -325,10 +314,7 @@ class ProImageService:
                     "media_resolution": media_resolution.value,
                 }
 
-                response = self.gemini_client.generate_content(
-                    contents,
-                    config=gen_config
-                )
+                response = self.gemini_client.generate_content(contents, config=gen_config)
                 image_bytes_list = self.gemini_client.extract_images(response)
 
                 progress.update(70, "Processing edited images...")
@@ -349,14 +335,10 @@ class ProImageService:
 
                     if use_storage and self.storage_service:
                         stored_info = self.storage_service.store_image(
-                            image_bytes,
-                            f"image/{self.config.default_image_format}",
-                            metadata
+                            image_bytes, f"image/{self.config.default_image_format}", metadata
                         )
 
-                        thumbnail_b64 = self.storage_service.get_thumbnail_base64(
-                            stored_info.id
-                        )
+                        thumbnail_b64 = self.storage_service.get_thumbnail_base64(stored_info.id)
                         if thumbnail_b64:
                             thumbnail_bytes = base64.b64decode(thumbnail_b64)
                             thumbnail_image = MCPImage(data=thumbnail_bytes, format="jpeg")
@@ -368,8 +350,7 @@ class ProImageService:
                         )
                     else:
                         mcp_image = MCPImage(
-                            data=image_bytes,
-                            format=self.config.default_image_format
+                            data=image_bytes, format=self.config.default_image_format
                         )
                         mcp_images.append(mcp_image)
 
@@ -378,7 +359,8 @@ class ProImageService:
                         )
 
                 progress.update(
-                    100, f"Successfully edited image with Pro, generated {len(mcp_images)} result(s)"
+                    100,
+                    f"Successfully edited image with Pro, generated {len(mcp_images)} result(s)",
                 )
                 return mcp_images, len(mcp_images)
 
@@ -387,10 +369,7 @@ class ProImageService:
                 raise
 
     def _enhance_prompt_for_pro(
-        self,
-        prompt: str,
-        resolution: str,
-        negative_prompt: str | None
+        self, prompt: str, resolution: str, negative_prompt: str | None
     ) -> str:
         """
         Enhance prompt to leverage Pro model capabilities.

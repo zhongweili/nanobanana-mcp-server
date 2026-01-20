@@ -31,7 +31,6 @@ class ImageProcessingError(NanoBananaError):
     pass
 
 
-
 class FileOperationError(NanoBananaError):
     """Raised when file operations fail."""
 

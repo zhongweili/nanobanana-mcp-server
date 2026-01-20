@@ -8,12 +8,12 @@ Implements the DB/Index layer shown in workflows.md for tracking:
 - Generation and editing metadata
 """
 
-import sqlite3
-import json
-import os
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, NamedTuple
+import json
 import logging
+import os
+import sqlite3
+from typing import Any, NamedTuple
 
 
 class ImageRecord(NamedTuple):
@@ -26,11 +26,11 @@ class ImageRecord(NamedTuple):
     width: int
     height: int
     size_bytes: int
-    file_id: Optional[str]
-    file_uri: Optional[str]
-    expires_at: Optional[datetime]
-    parent_file_id: Optional[str]
-    metadata: Dict[str, Any]
+    file_id: str | None
+    file_uri: str | None
+    expires_at: datetime | None
+    parent_file_id: str | None
+    metadata: dict[str, Any]
     created_at: datetime
     updated_at: datetime
 
@@ -38,7 +38,7 @@ class ImageRecord(NamedTuple):
 class ImageDatabaseService:
     """Database service for tracking image metadata and Files API integration."""
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: str | None = None):
         """Initialize database service.
 
         Args:
@@ -92,11 +92,11 @@ class ImageDatabaseService:
         width: int,
         height: int,
         size_bytes: int,
-        file_id: Optional[str] = None,
-        file_uri: Optional[str] = None,
-        expires_at: Optional[datetime] = None,
-        parent_file_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        file_id: str | None = None,
+        file_uri: str | None = None,
+        expires_at: datetime | None = None,
+        parent_file_id: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> int:
         """
         Insert or update image record.
@@ -186,7 +186,7 @@ class ImageDatabaseService:
             conn.commit()
             return record_id
 
-    def get_by_file_id(self, file_id: str) -> Optional[ImageRecord]:
+    def get_by_file_id(self, file_id: str) -> ImageRecord | None:
         """Get image record by Files API file_id."""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -196,7 +196,7 @@ class ImageDatabaseService:
                 return self._row_to_record(row)
             return None
 
-    def get_by_path(self, path: str) -> Optional[ImageRecord]:
+    def get_by_path(self, path: str) -> ImageRecord | None:
         """Get image record by local file path."""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -206,7 +206,7 @@ class ImageDatabaseService:
                 return self._row_to_record(row)
             return None
 
-    def get_by_id(self, record_id: int) -> Optional[ImageRecord]:
+    def get_by_id(self, record_id: int) -> ImageRecord | None:
         """Get image record by database ID."""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -216,7 +216,7 @@ class ImageDatabaseService:
                 return self._row_to_record(row)
             return None
 
-    def list_expired_files(self, buffer_minutes: int = 30) -> List[ImageRecord]:
+    def list_expired_files(self, buffer_minutes: int = 30) -> list[ImageRecord]:
         """
         List Files API entries that are expired or will expire soon.
 
@@ -244,7 +244,7 @@ class ImageDatabaseService:
             return [self._row_to_record(row) for row in rows]
 
     def update_files_api_info(
-        self, record_id: int, file_id: str, file_uri: str, expires_at: Optional[datetime] = None
+        self, record_id: int, file_id: str, file_uri: str, expires_at: datetime | None = None
     ) -> bool:
         """
         Update Files API information for an existing record.
@@ -309,7 +309,7 @@ class ImageDatabaseService:
 
             return success
 
-    def get_usage_stats(self) -> Dict[str, Any]:
+    def get_usage_stats(self) -> dict[str, Any]:
         """Get database usage statistics."""
         with sqlite3.connect(self.db_path) as conn:
             # Total records and sizes

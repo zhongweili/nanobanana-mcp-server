@@ -1,14 +1,16 @@
-from fastmcp import FastMCP
-from typing import Dict, Any
-from ..config.constants import TEMPLATE_CATEGORIES
 import logging
+from typing import Any
+
+from fastmcp import FastMCP
+
+from ..config.constants import TEMPLATE_CATEGORIES
 
 
 def register_template_catalog_resource(server: FastMCP):
     """Register the template catalog resource with the FastMCP server."""
 
     @server.resource("nano-banana://prompt-templates")
-    def prompt_templates_catalog() -> Dict[str, Any]:
+    def prompt_templates_catalog() -> dict[str, Any]:
         """
         A compact catalog of prompt templates (same schemas as the @mcp.prompt items).
         """

@@ -9,16 +9,17 @@ This module tests the output_path feature, including:
 """
 
 import os
-import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import pytest
+
+from nanobanana_mcp_server.core.exceptions import ValidationError
 from nanobanana_mcp_server.utils.validation_utils import (
+    IMAGE_EXTENSIONS,
     resolve_output_path,
     validate_output_path,
-    IMAGE_EXTENSIONS,
 )
-from nanobanana_mcp_server.core.exceptions import ValidationError
 
 
 class TestResolveOutputPath:
@@ -246,8 +247,9 @@ class TestOutputPathToolParameter:
 
     def test_generate_image_accepts_output_path(self):
         """Verify generate_image function accepts output_path parameter."""
-        from nanobanana_mcp_server.tools.generate_image import register_generate_image_tool
         from fastmcp import FastMCP
+
+        from nanobanana_mcp_server.tools.generate_image import register_generate_image_tool
 
         server = FastMCP("test")
         register_generate_image_tool(server)
@@ -262,8 +264,9 @@ class TestOutputPathToolParameter:
 
     def test_output_path_has_correct_default(self):
         """Verify output_path defaults to None (not required)."""
-        from nanobanana_mcp_server.tools.generate_image import register_generate_image_tool
         from fastmcp import FastMCP
+
+        from nanobanana_mcp_server.tools.generate_image import register_generate_image_tool
 
         server = FastMCP("test")
         register_generate_image_tool(server)
@@ -281,16 +284,18 @@ class TestEnhancedImageServiceOutputPath:
 
     def test_generate_images_accepts_output_path(self):
         """Verify generate_images method accepts output_path parameter."""
-        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
         import inspect
+
+        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
 
         sig = inspect.signature(EnhancedImageService.generate_images)
         assert "output_path" in sig.parameters
 
     def test_process_generated_image_accepts_output_path(self):
         """Verify _process_generated_image accepts output_path parameter."""
-        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
         import inspect
+
+        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
 
         sig = inspect.signature(EnhancedImageService._process_generated_image)
         assert "output_path" in sig.parameters

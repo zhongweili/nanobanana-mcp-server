@@ -1,8 +1,7 @@
+from datetime import datetime
+import json
 import logging
 import sys
-from typing import Optional
-import json
-from datetime import datetime
 
 
 def setup_logging(level: str = "INFO", format_type: str = "standard") -> None:
@@ -103,7 +102,7 @@ def get_logger(name: str) -> logging.Logger:
 
 
 def log_function_call(
-    logger: logging.Logger, func_name: str, args: Optional[dict] = None, level: str = "DEBUG"
+    logger: logging.Logger, func_name: str, args: dict | None = None, level: str = "DEBUG"
 ) -> None:
     """Log a function call with arguments."""
     numeric_level = getattr(logging, level.upper(), logging.DEBUG)
@@ -117,7 +116,7 @@ def log_function_call(
 
 
 def log_function_result(
-    logger: logging.Logger, func_name: str, result: Optional[dict] = None, level: str = "DEBUG"
+    logger: logging.Logger, func_name: str, result: dict | None = None, level: str = "DEBUG"
 ) -> None:
     """Log a function result."""
     numeric_level = getattr(logging, level.upper(), logging.DEBUG)
@@ -158,7 +157,7 @@ def sanitize_log_data(data: dict) -> dict:
 
 
 def log_performance_metric(
-    logger: logging.Logger, operation: str, duration_ms: float, metadata: Optional[dict] = None
+    logger: logging.Logger, operation: str, duration_ms: float, metadata: dict | None = None
 ) -> None:
     """Log performance metrics."""
     perf_data = {
@@ -178,8 +177,8 @@ def log_api_call(
     api: str,
     method: str,
     url: str,
-    status_code: Optional[int] = None,
-    duration_ms: Optional[float] = None,
+    status_code: int | None = None,
+    duration_ms: float | None = None,
 ) -> None:
     """Log API calls."""
     api_data = {"api": api, "method": method, "url": url, "type": "api_call"}
@@ -193,7 +192,7 @@ def log_api_call(
 
 
 def log_error_with_context(
-    logger: logging.Logger, error: Exception, context: Optional[dict] = None
+    logger: logging.Logger, error: Exception, context: dict | None = None
 ) -> None:
     """Log error with additional context."""
     error_data = {

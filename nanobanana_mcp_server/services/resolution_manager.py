@@ -6,7 +6,6 @@ for both Flash and Pro models, supporting multiple input formats and memory cons
 
 import logging
 import re
-from typing import Dict, List, Optional, Tuple, Union
 
 from ..config.constants import (
     BYTES_PER_PIXEL_RGBA,
@@ -14,7 +13,6 @@ from ..config.constants import (
     MAX_ASPECT_RATIO,
     MEMORY_BUFFER_PERCENT,
     MIN_ASPECT_RATIO,
-    MODEL_RESOLUTION_LIMITS,
     RESOLUTION_PRESETS,
 )
 from ..config.settings import ResolutionConfig
@@ -29,7 +27,7 @@ class ResolutionManager:
     and memory estimation for both Flash and Pro models.
     """
 
-    def __init__(self, config: Optional[ResolutionConfig] = None):
+    def __init__(self, config: ResolutionConfig | None = None):
         """Initialize with resolution configuration.
 
         Args:
@@ -40,10 +38,10 @@ class ResolutionManager:
 
     def validate_resolution(
         self,
-        resolution: Union[str, Dict, List, None],
+        resolution: str | dict | list | None,
         model_tier: ModelTier,
-        prompt_hints: Optional[List[str]] = None
-    ) -> Tuple[int, int]:
+        prompt_hints: list[str] | None = None,
+    ) -> tuple[int, int]:
         """Validate and normalize resolution based on model capabilities.
 
         Args:
@@ -74,17 +72,13 @@ class ResolutionManager:
         self._validate_memory_constraints(width, height)
 
         # Log resolution decision
-        self.logger.debug(
-            f"Validated resolution: {width}x{height} for {model_tier.value} model"
-        )
+        self.logger.debug(f"Validated resolution: {width}x{height} for {model_tier.value} model")
 
         return width, height
 
     def parse_resolution(
-        self,
-        resolution: Union[str, Dict, List, None],
-        model_tier: Optional[ModelTier] = None
-    ) -> Tuple[int, int]:
+        self, resolution: str | dict | list | None, model_tier: ModelTier | None = None
+    ) -> tuple[int, int]:
         """Parse resolution from various input formats.
 
         Supports:
@@ -121,15 +115,11 @@ class ResolutionManager:
             return self._parse_list_resolution(resolution)
 
         else:
-            raise ValidationError(
-                f"Invalid resolution type: {type(resolution).__name__}"
-            )
+            raise ValidationError(f"Invalid resolution type: {type(resolution).__name__}")
 
     def _parse_string_resolution(
-        self,
-        resolution: str,
-        model_tier: Optional[ModelTier] = None
-    ) -> Tuple[int, int]:
+        self, resolution: str, model_tier: ModelTier | None = None
+    ) -> tuple[int, int]:
         """Parse string resolution format.
 
         Args:
@@ -173,10 +163,8 @@ class ResolutionManager:
         raise ValidationError(f"Unknown resolution preset: {resolution}")
 
     def _parse_dict_resolution(
-        self,
-        resolution: Dict,
-        model_tier: Optional[ModelTier] = None
-    ) -> Tuple[int, int]:
+        self, resolution: dict, model_tier: ModelTier | None = None
+    ) -> tuple[int, int]:
         """Parse dictionary resolution format.
 
         Args:
@@ -200,11 +188,9 @@ class ResolutionManager:
             return self._parse_aspect_ratio_resolution(resolution, model_tier)
 
         else:
-            raise ValidationError(
-                "Dictionary must have either 'width'/'height' or 'aspect_ratio'"
-            )
+            raise ValidationError("Dictionary must have either 'width'/'height' or 'aspect_ratio'")
 
-    def _parse_list_resolution(self, resolution: List) -> Tuple[int, int]:
+    def _parse_list_resolution(self, resolution: list) -> tuple[int, int]:
         """Parse list resolution format.
 
         Args:
@@ -224,10 +210,8 @@ class ResolutionManager:
             raise ValidationError("List elements must be integers")
 
     def _parse_aspect_ratio_resolution(
-        self,
-        resolution: Dict,
-        model_tier: Optional[ModelTier] = None
-    ) -> Tuple[int, int]:
+        self, resolution: dict, model_tier: ModelTier | None = None
+    ) -> tuple[int, int]:
         """Parse aspect ratio with target size.
 
         Args:
@@ -270,9 +254,7 @@ class ResolutionManager:
         elif "max_dimension" in resolution:
             max_dimension = int(resolution["max_dimension"])
         else:
-            raise ValidationError(
-                "aspect_ratio requires either 'target_size' or 'max_dimension'"
-            )
+            raise ValidationError("aspect_ratio requires either 'target_size' or 'max_dimension'")
 
         # Calculate dimensions maintaining aspect ratio
         if aspect_ratio >= 1:  # Landscape or square
@@ -285,10 +267,8 @@ class ResolutionManager:
         return width, height
 
     def _get_dynamic_preset(
-        self,
-        preset: str,
-        model_tier: Optional[ModelTier] = None
-    ) -> Tuple[int, int]:
+        self, preset: str, model_tier: ModelTier | None = None
+    ) -> tuple[int, int]:
         """Get dynamic preset based on model capabilities.
 
         Args:
@@ -319,12 +299,7 @@ class ResolutionManager:
 
         return size, size  # Square by default
 
-    def normalize_resolution(
-        self,
-        width: int,
-        height: int,
-        max_resolution: int
-    ) -> Tuple[int, int]:
+    def normalize_resolution(self, width: int, height: int, max_resolution: int) -> tuple[int, int]:
         """Normalize resolution to fit within model limits.
 
         Maintains aspect ratio while downscaling if necessary.
@@ -359,12 +334,7 @@ class ResolutionManager:
 
         return new_width, new_height
 
-    def estimate_memory(
-        self,
-        width: int,
-        height: int,
-        format: str = "png"
-    ) -> int:
+    def estimate_memory(self, width: int, height: int, format: str = "png") -> int:
         """Estimate memory usage for an image of given dimensions.
 
         Args:
@@ -408,11 +378,7 @@ class ResolutionManager:
                 f"{int(MEMORY_BUFFER_PERCENT * 100)}% buffer)"
             )
 
-    def get_resolution_preset(
-        self,
-        preset_name: str,
-        model_tier: ModelTier
-    ) -> Tuple[int, int]:
+    def get_resolution_preset(self, preset_name: str, model_tier: ModelTier) -> tuple[int, int]:
         """Get resolution dimensions for a named preset.
 
         Args:
@@ -430,7 +396,7 @@ class ResolutionManager:
         except ValidationError:
             raise ValidationError(f"Unknown resolution preset: {preset_name}")
 
-    def extract_resolution_hints(self, prompt: str) -> List[str]:
+    def extract_resolution_hints(self, prompt: str) -> list[str]:
         """Extract resolution hints from prompt text.
 
         Looks for keywords like "4k", "high resolution", "ultra HD", etc.
@@ -446,15 +412,30 @@ class ResolutionManager:
 
         # Resolution keywords to look for
         keywords = [
-            "4k", "uhd", "ultra hd", "ultra high definition",
-            "2k", "qhd", "quad hd",
-            "1080p", "full hd", "fhd",
-            "720p", "hd",
-            "high resolution", "high res", "hi-res",
-            "low resolution", "low res",
-            "professional", "production quality",
-            "detailed", "ultra detailed",
-            "crisp", "sharp", "pristine"
+            "4k",
+            "uhd",
+            "ultra hd",
+            "ultra high definition",
+            "2k",
+            "qhd",
+            "quad hd",
+            "1080p",
+            "full hd",
+            "fhd",
+            "720p",
+            "hd",
+            "high resolution",
+            "high res",
+            "hi-res",
+            "low resolution",
+            "low res",
+            "professional",
+            "production quality",
+            "detailed",
+            "ultra detailed",
+            "crisp",
+            "sharp",
+            "pristine",
         ]
 
         for keyword in keywords:
@@ -462,7 +443,7 @@ class ResolutionManager:
                 hints.append(keyword)
 
         # Look for resolution patterns (e.g., "3840x2160")
-        resolution_pattern = r'\b\d{3,4}\s*x\s*\d{3,4}\b'
+        resolution_pattern = r"\b\d{3,4}\s*x\s*\d{3,4}\b"
         if re.search(resolution_pattern, prompt_lower):
             hints.append("custom_resolution")
 
@@ -472,7 +453,7 @@ class ResolutionManager:
         self,
         prompt: str,
         model_tier: ModelTier,
-        input_images: Optional[List[Tuple[int, int]]] = None
+        input_images: list[tuple[int, int]] | None = None,
     ) -> str:
         """Recommend optimal resolution based on prompt and inputs.
 
@@ -499,8 +480,13 @@ class ResolutionManager:
 
         # Check for quality indicators
         quality_indicators = [
-            "professional", "production", "high resolution",
-            "detailed", "ultra detailed", "crisp", "sharp"
+            "professional",
+            "production",
+            "high resolution",
+            "detailed",
+            "ultra detailed",
+            "crisp",
+            "sharp",
         ]
         if any(indicator in hints for indicator in quality_indicators):
             return "high"
@@ -511,10 +497,7 @@ class ResolutionManager:
 
         # Consider input images
         if input_images:
-            max_dim = max(
-                max(width, height)
-                for width, height in input_images
-            )
+            max_dim = max(max(width, height) for width, height in input_images)
             if max_dim >= 3000:
                 return "4k" if model_tier == ModelTier.PRO else "2k"
             elif max_dim >= 2000:

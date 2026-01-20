@@ -3,19 +3,20 @@ Resource handler for monitoring operation progress and status.
 Provides real-time progress updates for long-running operations.
 """
 
-from fastmcp import FastMCP
-from typing import Dict, Any
 import logging
+from typing import Any
 
-from ..core.progress_tracker import get_progress_tracker, OperationStatus
+from fastmcp import FastMCP
+
 from ..core.exceptions import ValidationError
+from ..core.progress_tracker import OperationStatus, get_progress_tracker
 
 
 def register_operation_status_resources(server: FastMCP):
     """Register operation status resources with the FastMCP server."""
 
     @server.resource("progress://operations/{operation_id}")
-    def get_operation_progress(operation_id: str) -> Dict[str, Any]:
+    def get_operation_progress(operation_id: str) -> dict[str, Any]:
         """
         Get real-time progress information for a specific operation.
 
@@ -79,7 +80,7 @@ def register_operation_status_resources(server: FastMCP):
             return {"error": "server_error", "message": str(e), "operation_id": operation_id}
 
     @server.resource("progress://operations/list")
-    def list_operations() -> Dict[str, Any]:
+    def list_operations() -> dict[str, Any]:
         """
         List all tracked operations.
 

@@ -3,19 +3,20 @@ File-based image service that saves images to a user-specified directory.
 Replaces the temporary storage system with persistent file output.
 """
 
-import time
-from pathlib import Path
-from typing import List, Optional, Tuple, Dict, Any
 from datetime import datetime
-import logging
-from PIL import Image as PILImage
 import io
+import logging
+from pathlib import Path
+import time
+from typing import Any
 
 from fastmcp.utilities.types import Image as MCPImage
-from .gemini_client import GeminiClient
-from ..utils.image_utils import validate_image_format
+from PIL import Image as PILImage
+
 from ..config.settings import GeminiConfig, ServerConfig
 from ..core.progress_tracker import ProgressContext
+from ..utils.image_utils import validate_image_format
+from .gemini_client import GeminiClient
 
 
 class FileImageService:
@@ -58,7 +59,7 @@ class FileImageService:
                 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
                 return f"{timestamp}.{extension}"
 
-    def _generate_thumbnail(self, image_bytes: bytes) -> Tuple[bytes, int, int]:
+    def _generate_thumbnail(self, image_bytes: bytes) -> tuple[bytes, int, int]:
         """Generate a small thumbnail from image bytes."""
         try:
             # Open image
@@ -95,11 +96,11 @@ class FileImageService:
         self,
         prompt: str,
         n: int = 1,
-        negative_prompt: Optional[str] = None,
-        system_instruction: Optional[str] = None,
-        input_images: Optional[List[Tuple[str, str]]] = None,
-        aspect_ratio: Optional[str] = None,
-    ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
+        negative_prompt: str | None = None,
+        system_instruction: str | None = None,
+        input_images: list[tuple[str, str]] | None = None,
+        aspect_ratio: str | None = None,
+    ) -> tuple[list[MCPImage], list[dict[str, Any]]]:
         """
         Generate images using Gemini API and save to file system.
 
@@ -214,7 +215,7 @@ class FileImageService:
 
     def edit_image(
         self, instruction: str, base_image_b64: str, mime_type: str = "image/png"
-    ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
+    ) -> tuple[list[MCPImage], list[dict[str, Any]]]:
         """
         Edit an image using conversational instructions and save to file system.
 
@@ -308,7 +309,7 @@ class FileImageService:
                 self.logger.error(f"Failed to edit image: {e}")
                 raise
 
-    def get_output_stats(self) -> Dict[str, Any]:
+    def get_output_stats(self) -> dict[str, Any]:
         """Get statistics about the output directory."""
         try:
             image_files = (

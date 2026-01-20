@@ -6,14 +6,15 @@ A production-ready FastMCP server that provides AI-powered image generation and 
 capabilities through Google's Gemini 2.5 Flash Image model.
 """
 
-import sys
-import os
-from .config.settings import ServerConfig, GeminiConfig
-from .core.server import NanoBananaMCP
-from .core.exceptions import ConfigurationError
-from .utils.logging_utils import setup_logging
-from . import services
 import logging
+import os
+import sys
+
+from . import services
+from .config.settings import GeminiConfig, ServerConfig
+from .core.exceptions import ConfigurationError
+from .core.server import NanoBananaMCP
+from .utils.logging_utils import setup_logging
 
 
 def create_app():

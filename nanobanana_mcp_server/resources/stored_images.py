@@ -3,20 +3,21 @@ Resource handler for serving stored images via file:// URIs.
 Provides both full resolution and thumbnail access.
 """
 
-from fastmcp import FastMCP
-from typing import Dict, Any
-import logging
 import base64
+import logging
+from typing import Any
 
-from ..services import get_image_storage_service
+from fastmcp import FastMCP
+
 from ..core.exceptions import ValidationError
+from ..services import get_image_storage_service
 
 
 def register_stored_image_resources(server: FastMCP):
     """Register stored image resources with the FastMCP server."""
 
     @server.resource("file://images/{image_id}")
-    def get_stored_image(image_id: str) -> Dict[str, Any]:
+    def get_stored_image(image_id: str) -> dict[str, Any]:
         """
         Serve full resolution stored images.
 
@@ -73,7 +74,7 @@ def register_stored_image_resources(server: FastMCP):
             return {"error": "server_error", "message": str(e), "image_id": image_id}
 
     @server.resource("file://images/{image_id}/thumbnail")
-    def get_stored_thumbnail(image_id: str) -> Dict[str, Any]:
+    def get_stored_thumbnail(image_id: str) -> dict[str, Any]:
         """
         Serve thumbnail version of stored images.
 
@@ -131,7 +132,7 @@ def register_stored_image_resources(server: FastMCP):
             return {"error": "server_error", "message": str(e), "image_id": image_id}
 
     @server.resource("file://images")
-    def list_stored_images() -> Dict[str, Any]:
+    def list_stored_images() -> dict[str, Any]:
         """
         List all currently stored images with metadata.
 

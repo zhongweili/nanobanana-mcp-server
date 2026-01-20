@@ -1,9 +1,10 @@
-from typing import Optional, Dict, Any
-from .gemini_client import GeminiClient
-from ..core.exceptions import FileOperationError, ValidationError
-from ..core.validation import validate_file_path
 import logging
 import os
+from typing import Any
+
+from ..core.exceptions import FileOperationError, ValidationError
+from ..core.validation import validate_file_path
+from .gemini_client import GeminiClient
 
 
 class FileService:
@@ -13,7 +14,7 @@ class FileService:
         self.gemini_client = gemini_client
         self.logger = logging.getLogger(__name__)
 
-    def upload_file(self, file_path: str, display_name: Optional[str] = None) -> Dict[str, Any]:
+    def upload_file(self, file_path: str, display_name: str | None = None) -> dict[str, Any]:
         """
         Upload a file to Gemini Files API.
 
@@ -61,7 +62,7 @@ class FileService:
             self.logger.error(f"Failed to upload file {file_path}: {e}")
             raise FileOperationError(f"File upload failed: {e}")
 
-    def get_file_metadata(self, file_name: str) -> Dict[str, Any]:
+    def get_file_metadata(self, file_name: str) -> dict[str, Any]:
         """
         Get metadata for a file from Gemini Files API.
 
@@ -100,7 +101,7 @@ class FileService:
             self.logger.error(f"Failed to get file metadata for {file_name}: {e}")
             raise FileOperationError(f"Failed to get file metadata: {e}")
 
-    def list_files(self) -> Dict[str, Any]:
+    def list_files(self) -> dict[str, Any]:
         """
         List files in Gemini Files API.
 
@@ -166,7 +167,7 @@ class FileService:
             self.logger.error(f"Failed to delete file {file_name}: {e}")
             raise FileOperationError(f"Failed to delete file: {e}")
 
-    def get_file_usage_stats(self) -> Dict[str, Any]:
+    def get_file_usage_stats(self) -> dict[str, Any]:
         """
         Get usage statistics for uploaded files.
 

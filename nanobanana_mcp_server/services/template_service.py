@@ -1,7 +1,7 @@
 """Template service for managing prompt templates."""
 
-from typing import Dict, Any, List
 import logging
+from typing import Any
 
 
 class TemplateService:
@@ -10,7 +10,7 @@ class TemplateService:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
-    def get_template_catalog(self) -> Dict[str, Any]:
+    def get_template_catalog(self) -> dict[str, Any]:
         """Get the complete template catalog."""
         return {
             "photorealistic_shot": {
@@ -51,14 +51,14 @@ class TemplateService:
             },
         }
 
-    def get_template_by_name(self, name: str) -> Dict[str, Any]:
+    def get_template_by_name(self, name: str) -> dict[str, Any]:
         """Get a specific template by name."""
         catalog = self.get_template_catalog()
         if name not in catalog:
             raise ValueError(f"Template '{name}' not found")
         return catalog[name]
 
-    def get_templates_by_category(self, category: str) -> Dict[str, Any]:
+    def get_templates_by_category(self, category: str) -> dict[str, Any]:
         """Get all templates in a specific category."""
         catalog = self.get_template_catalog()
         return {
@@ -67,7 +67,7 @@ class TemplateService:
             if template.get("category") == category
         }
 
-    def list_categories(self) -> List[str]:
+    def list_categories(self) -> list[str]:
         """Get all available template categories."""
         catalog = self.get_template_catalog()
         categories = set()

@@ -6,23 +6,25 @@ Implements the complete workflow sequences:
 2. Editing: M->F->G->FS->F->D (get file, edit, save, upload new, track with parent_file_id)
 """
 
-from typing import List, Optional, Tuple, Dict, Any
-from fastmcp.utilities.types import Image as MCPImage
-from .gemini_client import GeminiClient
-from .files_api_service import FilesAPIService
-from .image_database_service import ImageDatabaseService
-from ..utils.image_utils import create_thumbnail, validate_image_format
-from ..utils.validation_utils import resolve_output_path
-from ..config.settings import GeminiConfig
-from ..config.constants import THUMBNAIL_SIZE, TEMP_FILE_SUFFIX
-from PIL import Image as PILImage
-import os
-import logging
-import mimetypes
 import base64
 from datetime import datetime
 import hashlib
 from io import BytesIO
+import logging
+import mimetypes
+import os
+from typing import Any
+
+from fastmcp.utilities.types import Image as MCPImage
+from PIL import Image as PILImage
+
+from ..config.constants import TEMP_FILE_SUFFIX, THUMBNAIL_SIZE
+from ..config.settings import GeminiConfig
+from ..utils.image_utils import create_thumbnail, validate_image_format
+from ..utils.validation_utils import resolve_output_path
+from .files_api_service import FilesAPIService
+from .gemini_client import GeminiClient
+from .image_database_service import ImageDatabaseService
 
 
 class EnhancedImageService:
@@ -42,7 +44,7 @@ class EnhancedImageService:
         files_api_service: FilesAPIService,
         db_service: ImageDatabaseService,
         config: GeminiConfig,
-        out_dir: Optional[str] = None,
+        out_dir: str | None = None,
     ):
         """
         Initialize enhanced image service.
@@ -68,13 +70,13 @@ class EnhancedImageService:
         self,
         prompt: str,
         n: int = 1,
-        negative_prompt: Optional[str] = None,
-        system_instruction: Optional[str] = None,
-        input_images: Optional[List[Tuple[str, str]]] = None,
-        aspect_ratio: Optional[str] = None,
-        resolution: Optional[str] = None,
-        output_path: Optional[str] = None,
-    ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
+        negative_prompt: str | None = None,
+        system_instruction: str | None = None,
+        input_images: list[tuple[str, str]] | None = None,
+        aspect_ratio: str | None = None,
+        resolution: str | None = None,
+        output_path: str | None = None,
+    ) -> tuple[list[MCPImage], list[dict[str, Any]]]:
         """
         Generate images following the complete workflow from workflows.md.
 
@@ -171,9 +173,8 @@ class EnhancedImageService:
             raise
 
     def edit_image_by_file_id(
-        self, file_id: str, edit_prompt: str,
-        resolution: Optional[str] = None
-    ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
+        self, file_id: str, edit_prompt: str, resolution: str | None = None
+    ) -> tuple[list[MCPImage], list[dict[str, Any]]]:
         """
         Edit image by file_id following workflows.md pattern.
 
@@ -237,9 +238,8 @@ class EnhancedImageService:
             raise
 
     def edit_image_by_path(
-        self, instruction: str, file_path: str,
-        resolution: Optional[str] = None
-    ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
+        self, instruction: str, file_path: str, resolution: str | None = None
+    ) -> tuple[list[MCPImage], list[dict[str, Any]]]:
         """
         Edit image from local file path following workflows.md pattern for path-based editing.
 
@@ -320,12 +320,12 @@ class EnhancedImageService:
         response_index: int,
         image_index: int,
         prompt: str,
-        negative_prompt: Optional[str],
-        system_instruction: Optional[str],
-        aspect_ratio: Optional[str],
-        output_path: Optional[str] = None,
+        negative_prompt: str | None,
+        system_instruction: str | None,
+        aspect_ratio: str | None,
+        output_path: str | None = None,
         image_index_for_path: int = 1,
-    ) -> Tuple[MCPImage, Dict[str, Any]]:
+    ) -> tuple[MCPImage, dict[str, Any]]:
         """
         Process a generated image through the complete workflow.
 
@@ -440,8 +440,8 @@ class EnhancedImageService:
         return thumbnail_image, metadata
 
     def _process_edited_image(
-        self, image_bytes: bytes, instruction: str, parent_file_id: Optional[str], edit_index: int
-    ) -> Tuple[MCPImage, Dict[str, Any]]:
+        self, image_bytes: bytes, instruction: str, parent_file_id: str | None, edit_index: int
+    ) -> tuple[MCPImage, dict[str, Any]]:
         """
         Process an edited image through the complete workflow.
 

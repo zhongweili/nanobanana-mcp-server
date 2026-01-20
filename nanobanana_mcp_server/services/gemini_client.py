@@ -22,7 +22,7 @@ class GeminiClient:
     def __init__(
         self,
         config: ServerConfig,
-        gemini_config: GeminiConfig | BaseModelConfig | FlashImageConfig | ProImageConfig
+        gemini_config: GeminiConfig | BaseModelConfig | FlashImageConfig | ProImageConfig,
     ):
         self.config = config
         self.gemini_config = gemini_config
@@ -42,7 +42,7 @@ class GeminiClient:
                 self._client = genai.Client(
                     vertexai=True,
                     project=self.config.gcp_project_id,
-                    location=self.config.gcp_region
+                    location=self.config.gcp_region,
                 )
                 self._log_auth_method(f"ADC (Vertex AI - {self.config.gcp_region})")
         return self._client
@@ -70,7 +70,9 @@ class GeminiClient:
             return []
 
         if len(images_b64) != len(mime_types):
-            raise ValueError(f"Images and MIME types count mismatch: {len(images_b64)} vs {len(mime_types)}")
+            raise ValueError(
+                f"Images and MIME types count mismatch: {len(images_b64)} vs {len(mime_types)}"
+            )
 
         parts = []
         for i, (b64, mime_type) in enumerate(zip(images_b64, mime_types, strict=False)):
@@ -96,7 +98,7 @@ class GeminiClient:
         contents: list,
         config: dict[str, Any] | None = None,
         aspect_ratio: str | None = None,
-        **kwargs
+        **kwargs,
     ) -> any:
         """
         Generate content using Gemini API with model-aware parameter handling.
@@ -144,20 +146,20 @@ class GeminiClient:
                         # Map resolution names to API image_size values
                         resolution_map = {
                             "4k": "4K",
-                            "2k": "2K", 
+                            "2k": "2K",
                             "1k": "1K",
                             "high": "1K",  # Default high to 1K
                             "medium": "1K",  # Medium maps to 1K
                             "low": "1K",  # Low still uses 1K (minimum for Pro)
                         }
-                        
+
                         # Check for dimension format (e.g., "1920x1080")
                         if "x" in resolution.lower():
                             try:
                                 width, height = resolution.lower().split("x")
                                 width, height = int(width), int(height)
                                 max_dim = max(width, height)
-                                
+
                                 # Map to appropriate size tier
                                 if max_dim >= 3840:
                                     image_size = "4K"
@@ -165,7 +167,7 @@ class GeminiClient:
                                     image_size = "2K"
                                 else:
                                     image_size = "1K"
-                                    
+
                                 self.logger.info(f"Mapped {resolution} to image_size={image_size}")
                             except:
                                 # Fallback for invalid dimension format
@@ -176,7 +178,7 @@ class GeminiClient:
                         # Handle tuple format (width, height)
                         width, height = resolution
                         max_dim = max(width, height)
-                        
+
                         if max_dim >= 3840:
                             image_size = "4K"
                         elif max_dim >= 2048:
@@ -186,7 +188,7 @@ class GeminiClient:
                     else:
                         # Default fallback
                         image_size = "1K"
-                        
+
                     image_config_kwargs["image_size"] = image_size
                     self.logger.info(f"Setting image_size={image_size} for resolution={resolution}")
 
@@ -248,11 +250,15 @@ class GeminiClient:
             # Grounding is controlled via prompt/system instructions
             # thinking_level is NOT available for this model
             if "thinking_level" in config:
-                self.logger.info("Note: thinking_level is not supported by gemini-3-pro-image-preview, ignoring")
-            
+                self.logger.info(
+                    "Note: thinking_level is not supported by gemini-3-pro-image-preview, ignoring"
+                )
+
             # Handle resolution variants (already processed in generate_content)
             if "resolution" in config:
-                self.logger.debug(f"Resolution parameter will be mapped to image_size: {config['resolution']}")
+                self.logger.debug(
+                    f"Resolution parameter will be mapped to image_size: {config['resolution']}"
+                )
 
         else:
             # Flash model - handle resolution within limits
@@ -262,11 +268,11 @@ class GeminiClient:
                 if isinstance(resolution, str):
                     if resolution.lower() in ["4k", "3840", "4096"]:
                         self.logger.warning(
-                            f"Flash model doesn't support 4K resolution, will use maximum 2K"
+                            "Flash model doesn't support 4K resolution, will use maximum 2K"
                         )
                     else:
                         self.logger.debug(f"Flash model using resolution: {resolution}")
-                        
+
             # Warn if Pro parameters are used
             pro_params = ["thinking_level", "media_resolution", "output_resolution"]
             used_pro_params = [p for p in pro_params if p in config]

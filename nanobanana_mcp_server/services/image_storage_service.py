@@ -3,24 +3,24 @@ Image storage and serving service for handling large generated images.
 Provides file-based storage with TTL cleanup and thumbnail generation.
 """
 
-import os
-import uuid
-import time
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass, asdict
-from datetime import datetime
-import json
 import base64
-import logging
-from PIL import Image as PILImage
+from dataclasses import asdict, dataclass
+from datetime import datetime
 import io
+import json
+import logging
+import os
+from pathlib import Path
+import time
+from typing import Any
+import uuid
 
-from ..config.settings import GeminiConfig, ResolutionConfig
+from PIL import Image as PILImage
+
 from ..config.constants import COMPRESSION_PROFILES
+from ..config.settings import GeminiConfig, ResolutionConfig
 from ..utils.memory_utils import (
     MemoryMonitor,
-    StreamingImageProcessor,
     optimize_for_memory,
 )
 
@@ -42,10 +42,10 @@ class StoredImageInfo:
     height: int
     thumbnail_width: int
     thumbnail_height: int
-    metadata: Dict[str, Any]
-    resolution: Optional[str] = None  # Resolution used for generation
-    actual_resolution: Optional[str] = None  # Actual resolution of saved image
-    compression_quality: Optional[int] = None  # Compression quality used
+    metadata: dict[str, Any]
+    resolution: str | None = None  # Resolution used for generation
+    actual_resolution: str | None = None  # Actual resolution of saved image
+    compression_quality: int | None = None  # Compression quality used
 
 
 class ImageStorageService:
@@ -54,8 +54,8 @@ class ImageStorageService:
     def __init__(
         self,
         config: GeminiConfig,
-        base_dir: Optional[str] = None,
-        resolution_config: Optional[ResolutionConfig] = None
+        base_dir: str | None = None,
+        resolution_config: ResolutionConfig | None = None,
     ):
         self.config = config
         self.resolution_config = resolution_config or ResolutionConfig()
@@ -80,7 +80,7 @@ class ImageStorageService:
         self._setup_directories()
 
         # Load existing metadata
-        self.image_registry: Dict[str, StoredImageInfo] = self._load_registry()
+        self.image_registry: dict[str, StoredImageInfo] = self._load_registry()
 
         # Cleanup on init
         self._cleanup_expired()
@@ -90,13 +90,13 @@ class ImageStorageService:
         self.base_dir.mkdir(exist_ok=True)
         self.thumbnails_dir.mkdir(exist_ok=True)
 
-    def _load_registry(self) -> Dict[str, StoredImageInfo]:
+    def _load_registry(self) -> dict[str, StoredImageInfo]:
         """Load image registry from disk."""
         if not self.metadata_file.exists():
             return {}
 
         try:
-            with open(self.metadata_file, "r") as f:
+            with open(self.metadata_file) as f:
                 data = json.load(f)
 
             registry = {}
@@ -149,7 +149,7 @@ class ImageStorageService:
             self.logger.info(f"Cleaned up {len(expired_ids)} expired images")
             self._save_registry()
 
-    def _generate_thumbnail(self, image_bytes: bytes, mime_type: str) -> Tuple[bytes, int, int]:
+    def _generate_thumbnail(self, image_bytes: bytes, mime_type: str) -> tuple[bytes, int, int]:
         """Generate thumbnail from image bytes."""
         try:
             # Open image
@@ -186,9 +186,9 @@ class ImageStorageService:
         self,
         image_bytes: bytes,
         mime_type: str,
-        metadata: Optional[Dict[str, Any]] = None,
-        ttl_seconds: Optional[int] = None,
-        resolution: Optional[str] = None,
+        metadata: dict[str, Any] | None = None,
+        ttl_seconds: int | None = None,
+        resolution: str | None = None,
     ) -> StoredImageInfo:
         """
         Store image and generate thumbnail.
@@ -295,12 +295,12 @@ class ImageStorageService:
                         pass
             raise e
 
-    def get_image_info(self, image_id: str) -> Optional[StoredImageInfo]:
+    def get_image_info(self, image_id: str) -> StoredImageInfo | None:
         """Get information about a stored image."""
         self._cleanup_expired()
         return self.image_registry.get(image_id)
 
-    def get_image_bytes(self, image_id: str, thumbnail: bool = False) -> Optional[bytes]:
+    def get_image_bytes(self, image_id: str, thumbnail: bool = False) -> bytes | None:
         """Retrieve image bytes by ID."""
         info = self.get_image_info(image_id)
         if not info:
@@ -315,14 +315,14 @@ class ImageStorageService:
             self.logger.error(f"Failed to read image {image_id}: {e}")
             return None
 
-    def get_thumbnail_base64(self, image_id: str) -> Optional[str]:
+    def get_thumbnail_base64(self, image_id: str) -> str | None:
         """Get thumbnail as base64 string for inline embedding."""
         thumbnail_bytes = self.get_image_bytes(image_id, thumbnail=True)
         if thumbnail_bytes:
             return base64.b64encode(thumbnail_bytes).decode()
         return None
 
-    def list_images(self, include_expired: bool = False) -> List[StoredImageInfo]:
+    def list_images(self, include_expired: bool = False) -> list[StoredImageInfo]:
         """List all stored images."""
         if not include_expired:
             self._cleanup_expired()
@@ -361,7 +361,7 @@ class ImageStorageService:
                 count += 1
         return count
 
-    def get_storage_stats(self) -> Dict[str, Any]:
+    def get_storage_stats(self) -> dict[str, Any]:
         """Get storage statistics."""
         self._cleanup_expired()
 

@@ -1,14 +1,14 @@
 """Input validation utilities."""
 
-from typing import Dict, List, Optional, Tuple, Union
 import re
+
 from ..config.constants import (
-    SUPPORTED_IMAGE_TYPES,
-    RESOLUTION_PRESETS,
-    MIN_ASPECT_RATIO,
-    MAX_ASPECT_RATIO,
     BYTES_PER_PIXEL_RGBA,
     IMAGE_OVERHEAD_MULTIPLIER,
+    MAX_ASPECT_RATIO,
+    MIN_ASPECT_RATIO,
+    RESOLUTION_PRESETS,
+    SUPPORTED_IMAGE_TYPES,
 )
 from .exceptions import ValidationError
 
@@ -68,7 +68,7 @@ def validate_base64_image(image_b64: str) -> None:
 
 
 def validate_image_list_consistency(
-    images_b64: Optional[List[str]], mime_types: Optional[List[str]]
+    images_b64: list[str] | None, mime_types: list[str] | None
 ) -> None:
     """Validate that image lists are consistent."""
     if images_b64 is None and mime_types is None:
@@ -133,10 +133,10 @@ def validate_edit_instruction(instruction: str) -> None:
 
 
 def validate_resolution(
-    resolution: Union[str, Dict, List, None],
+    resolution: str | dict | list | None,
     model_tier: str,
     max_flash: int = 2048,
-    max_pro: int = 3840
+    max_pro: int = 3840,
 ) -> None:
     """Validate resolution parameter format and values.
 
@@ -165,9 +165,7 @@ def validate_resolution(
             validate_dimensions(resolution["width"], resolution["height"])
         elif "aspect_ratio" in resolution:
             if "target_size" not in resolution and "max_dimension" not in resolution:
-                raise ValidationError(
-                    "aspect_ratio requires either target_size or max_dimension"
-                )
+                raise ValidationError("aspect_ratio requires either target_size or max_dimension")
         else:
             raise ValidationError(
                 "Dictionary resolution must have either width/height or aspect_ratio"
@@ -212,10 +210,7 @@ def validate_dimensions(width: int, height: int) -> None:
 
 
 def validate_memory_constraints(
-    width: int,
-    height: int,
-    format: str = "png",
-    limit_mb: int = 2048
+    width: int, height: int, format: str = "png", limit_mb: int = 2048
 ) -> None:
     """Validate that image won't exceed memory constraints.
 
