@@ -1,6 +1,5 @@
 """Tests for ResolutionManager service."""
 
-
 import pytest
 
 from nanobanana_mcp_server.config.settings import ResolutionConfig

@@ -68,8 +68,12 @@ class ProgressiveImageStorage:
 
             return variants
 
-        except Exception as e:
+        except (OSError, ValueError) as e:
             self.logger.error(f"Failed to generate variants: {e}")
+            # Return at least the original
+            return {"original": image_bytes}
+        except Exception as e:
+            self.logger.critical(f"Unexpected error generating variants: {e}")
             # Return at least the original
             return {"original": image_bytes}
 
