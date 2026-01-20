@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import os
 from pathlib import Path
+from typing import Dict, List, Tuple
 
 from dotenv import load_dotenv
 
@@ -123,7 +124,7 @@ class BaseModelConfig:
 class FlashImageConfig(BaseModelConfig):
     """Gemini 2.5 Flash Image configuration (speed-optimized)."""
     model_name: str = "gemini-2.5-flash-image"
-    max_resolution: int = 1024
+    max_resolution: int = 2048  # Updated from 1024 to support 2K
     supports_thinking: bool = False
     supports_grounding: bool = False
     supports_media_resolution: bool = False
@@ -170,6 +171,60 @@ class ModelSelectionConfig:
             default_tier = ModelTier.AUTO
 
         return cls(default_tier=default_tier)
+
+
+@dataclass
+class ResolutionConfig:
+    """Configuration for resolution handling and optimization."""
+
+    # Model-specific maximum resolutions
+    flash_max_resolution: int = 2048  # Updated from 1024
+    pro_max_resolution: int = 3840    # 4K support
+
+    # Default settings
+    default_resolution: str = "1024"
+    enable_full_resolution: bool = True
+
+    # Memory management
+    memory_limit_mb: int = 2048
+    enable_streaming: bool = True
+    chunk_size_kb: int = 8192
+
+    # Storage optimization
+    compression_quality: int = 85
+    use_webp: bool = True
+    thumbnail_sizes: List[int] = field(default_factory=lambda: [256, 512, 1024])
+
+    # Resolution presets
+    presets: Dict[str, Tuple[int, int]] = field(default_factory=lambda: {
+        "4k": (3840, 3840),
+        "2k": (2048, 2048),
+        "1080p": (1920, 1080),
+        "720p": (1280, 720),
+        "480p": (854, 480),
+        "square_lg": (1024, 1024),
+        "portrait_4k": (2160, 3840),
+        "landscape_4k": (3840, 2160),
+        "high": (0, 0),  # Dynamic based on model
+        "medium": (0, 0),  # Dynamic based on model
+        "low": (0, 0),  # Dynamic based on model
+        "1024": (1024, 1024),  # Default for backward compatibility
+    })
+
+    @classmethod
+    def from_env(cls) -> "ResolutionConfig":
+        """Load resolution config from environment."""
+        load_dotenv()
+
+        return cls(
+            flash_max_resolution=int(os.getenv("FLASH_MAX_RESOLUTION", "2048")),
+            pro_max_resolution=int(os.getenv("PRO_MAX_RESOLUTION", "3840")),
+            default_resolution=os.getenv("DEFAULT_RESOLUTION", "1024"),
+            enable_full_resolution=os.getenv("ENABLE_FULL_RESOLUTION", "true").lower() == "true",
+            memory_limit_mb=int(os.getenv("MEMORY_LIMIT_MB", "2048")),
+            compression_quality=int(os.getenv("COMPRESSION_QUALITY", "85")),
+            use_webp=os.getenv("USE_WEBP", "true").lower() == "true",
+        )
 
 
 @dataclass

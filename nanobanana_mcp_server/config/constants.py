@@ -15,6 +15,50 @@ MAX_INPUT_IMAGES = 3
 DEFAULT_IMAGE_FORMAT = "png"
 THUMBNAIL_FORMAT = "jpeg"
 
+# Resolution presets (static values)
+RESOLUTION_PRESETS = {
+    "4k": (3840, 3840),
+    "uhd": (3840, 2160),
+    "2k": (2048, 2048),
+    "fhd": (1920, 1080),
+    "1080p": (1920, 1080),
+    "hd": (1280, 720),
+    "720p": (1280, 720),
+    "480p": (854, 480),
+    "square_lg": (1024, 1024),
+    "square_md": (512, 512),
+    "square_sm": (256, 256),
+    "portrait_4k": (2160, 3840),
+    "portrait_fhd": (1080, 1920),
+    "landscape_4k": (3840, 2160),
+    "landscape_fhd": (1920, 1080),
+}
+
+# Memory constants
+MEMORY_LIMIT_MB_DEFAULT = 2048
+MEMORY_BUFFER_PERCENT = 0.2  # 20% safety buffer
+BYTES_PER_PIXEL_RGBA = 4
+IMAGE_OVERHEAD_MULTIPLIER = 1.5  # Account for processing overhead
+
+# Compression quality profiles
+COMPRESSION_PROFILES = {
+    "thumbnail": 70,
+    "preview": 80,
+    "display": 85,
+    "original": 95,
+    "lossless": 100,
+}
+
+# Model resolution limits
+MODEL_RESOLUTION_LIMITS = {
+    "flash": 2048,
+    "pro": 3840,
+}
+
+# Aspect ratio limits
+MIN_ASPECT_RATIO = 0.1
+MAX_ASPECT_RATIO = 10.0
+
 # Template categories
 TEMPLATE_CATEGORIES = {
     "photography": "High-quality photographic images",
