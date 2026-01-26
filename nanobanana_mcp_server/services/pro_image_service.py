@@ -1,20 +1,21 @@
 """Gemini 3 Pro Image specialized service for high-quality generation."""
 
 import base64
+from datetime import UTC, datetime
 import hashlib
+from io import BytesIO
 import logging
 import os
-from datetime import datetime
-from io import BytesIO
 from typing import Any
 
 from fastmcp.utilities.types import Image as MCPImage
 from PIL import Image as PILImage
 
 from ..config.settings import MediaResolution, ProImageConfig, ThinkingLevel
+from ..core.exceptions import ImageProcessingError
 from ..core.progress_tracker import ProgressContext
 from ..utils.image_utils import create_thumbnail, validate_image_format
-from ..utils.validation_utils import resolve_output_path
+from ..utils.validation_utils import resolve_output_path, validate_aspect_ratio_string
 from .gemini_client import GeminiClient
 from .image_storage_service import ImageStorageService
 
@@ -82,10 +83,14 @@ class ProImageService:
         if media_resolution is None:
             media_resolution = self.config.default_media_resolution
 
+        # Validate aspect_ratio if provided
+        if aspect_ratio:
+            validate_aspect_ratio_string(aspect_ratio)
+
         with ProgressContext(
             "pro_image_generation",
             f"Generating {n} high-quality image(s) with Gemini 3 Pro...",
-            {"prompt": prompt[:100], "count": n, "resolution": resolution}
+            {"prompt": prompt[:100], "count": n, "resolution": resolution},
         ) as progress:
             progress.update(5, "Configuring Pro model parameters...")
 
@@ -111,9 +116,7 @@ class ProImageService:
                 )
 
             # Enhanced prompt for Pro model
-            enhanced_prompt = self._enhance_prompt_for_pro(
-                prompt, resolution, negative_prompt
-            )
+            enhanced_prompt = self._enhance_prompt_for_pro(prompt, resolution, negative_prompt)
             contents.append(enhanced_prompt)
 
             # Add input images if provided (Pro benefits from images-first)
@@ -134,8 +137,7 @@ class ProImageService:
             for i in range(n):
                 try:
                     progress.update(
-                        20 + (i * 70 // n),
-                        f"Generating high-quality image {i + 1}/{n}..."
+                        20 + (i * 70 // n), f"Generating high-quality image {i + 1}/{n}..."
                     )
 
                     # Build generation config for Pro model
@@ -177,8 +179,10 @@ class ProImageService:
                         # Storage handling - custom output_path takes precedence
                         if output_path:
                             # Save directly to specified output path
-                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                            image_hash = hashlib.md5(image_bytes).hexdigest()[:8]
+                            timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
+                            image_hash = hashlib.md5(
+                                image_bytes, usedforsecurity=False
+                            ).hexdigest()[:8]
                             default_filename = f"pro_{timestamp}_{i + 1}_{j + 1}_{image_hash}.{self.config.default_image_format}"
                             overall_index = (i * len(images)) + j + 1
 
@@ -200,27 +204,38 @@ class ProImageService:
                             with PILImage.open(BytesIO(image_bytes)) as img:
                                 width, height = img.size
 
-                            # Create thumbnail alongside the image
+                            # Create thumbnail alongside the image (graceful degradation)
                             path_stem, _ = os.path.splitext(full_path)
                             thumb_path = f"{path_stem}_thumb.jpeg"
-                            create_thumbnail(full_path, thumb_path, size=256)
+                            try:
+                                create_thumbnail(full_path, thumb_path, size=256)
+                                # Read thumbnail for response
+                                with open(thumb_path, "rb") as f:
+                                    thumb_data = f.read()
+                                thumbnail_image = MCPImage(data=thumb_data, format="jpeg")
+                                all_images.append(thumbnail_image)
+                            except ImageProcessingError as e:
+                                # Thumbnail failed, return full image instead
+                                self.logger.warning(
+                                    f"Thumbnail creation failed, using full image: {e}"
+                                )
+                                thumb_path = None
+                                full_image = MCPImage(
+                                    data=image_bytes, format=self.config.default_image_format
+                                )
+                                all_images.append(full_image)
 
-                            # Read thumbnail for response
-                            with open(thumb_path, "rb") as f:
-                                thumb_data = f.read()
-
-                            thumbnail_image = MCPImage(data=thumb_data, format="jpeg")
-                            all_images.append(thumbnail_image)
-
-                            metadata.update({
-                                "full_path": full_path,
-                                "thumb_path": thumb_path,
-                                "size_bytes": len(image_bytes),
-                                "width": width,
-                                "height": height,
-                                "is_stored": True,
-                                "output_path_used": True,
-                            })
+                            metadata.update(
+                                {
+                                    "full_path": full_path,
+                                    "thumb_path": thumb_path,
+                                    "size_bytes": len(image_bytes),
+                                    "width": width,
+                                    "height": height,
+                                    "is_stored": True,
+                                    "output_path_used": True,
+                                }
+                            )
 
                             all_metadata.append(metadata)
 
@@ -233,9 +248,7 @@ class ProImageService:
                         elif use_storage and self.storage_service:
                             # Use storage service for default behavior
                             stored_info = self.storage_service.store_image(
-                                image_bytes,
-                                f"image/{self.config.default_image_format}",
-                                metadata
+                                image_bytes, f"image/{self.config.default_image_format}", metadata
                             )
 
                             thumbnail_b64 = self.storage_service.get_thumbnail_base64(
@@ -246,18 +259,20 @@ class ProImageService:
                                 thumbnail_image = MCPImage(data=thumbnail_bytes, format="jpeg")
                                 all_images.append(thumbnail_image)
 
-                            metadata.update({
-                                "storage_id": stored_info.id,
-                                "full_image_uri": f"file://images/{stored_info.id}",
-                                "full_path": stored_info.full_path,
-                                "thumbnail_uri": f"file://images/{stored_info.id}/thumbnail",
-                                "size_bytes": stored_info.size_bytes,
-                                "thumbnail_size_bytes": stored_info.thumbnail_size_bytes,
-                                "width": stored_info.width,
-                                "height": stored_info.height,
-                                "expires_at": stored_info.expires_at,
-                                "is_stored": True,
-                            })
+                            metadata.update(
+                                {
+                                    "storage_id": stored_info.id,
+                                    "full_image_uri": f"file://images/{stored_info.id}",
+                                    "full_path": stored_info.full_path,
+                                    "thumbnail_uri": f"file://images/{stored_info.id}/thumbnail",
+                                    "size_bytes": stored_info.size_bytes,
+                                    "thumbnail_size_bytes": stored_info.thumbnail_size_bytes,
+                                    "width": stored_info.width,
+                                    "height": stored_info.height,
+                                    "expires_at": stored_info.expires_at,
+                                    "is_stored": True,
+                                }
+                            )
 
                             all_metadata.append(metadata)
 
@@ -269,8 +284,7 @@ class ProImageService:
                         else:
                             # Direct return without storage
                             mcp_image = MCPImage(
-                                data=image_bytes,
-                                format=self.config.default_image_format
+                                data=image_bytes, format=self.config.default_image_format
                             )
                             all_images.append(mcp_image)
                             all_metadata.append(metadata)
@@ -329,7 +343,7 @@ class ProImageService:
         with ProgressContext(
             "pro_image_editing",
             "Editing image with Gemini 3 Pro...",
-            {"instruction": instruction[:100]}
+            {"instruction": instruction[:100]},
         ) as progress:
             try:
                 progress.update(10, "Configuring Pro editing parameters...")
@@ -352,9 +366,7 @@ class ProImageService:
                 )
 
                 # Create parts
-                image_parts = self.gemini_client.create_image_parts(
-                    [base_image_b64], [mime_type]
-                )
+                image_parts = self.gemini_client.create_image_parts([base_image_b64], [mime_type])
                 contents = [*image_parts, enhanced_instruction]
 
                 progress.update(40, "Sending edit request to Gemini 3 Pro API...")
@@ -365,10 +377,7 @@ class ProImageService:
                     "media_resolution": media_resolution.value,
                 }
 
-                response = self.gemini_client.generate_content(
-                    contents,
-                    config=gen_config
-                )
+                response = self.gemini_client.generate_content(contents, config=gen_config)
                 image_bytes_list = self.gemini_client.extract_images(response)
 
                 progress.update(70, "Processing edited images...")
@@ -389,14 +398,10 @@ class ProImageService:
 
                     if use_storage and self.storage_service:
                         stored_info = self.storage_service.store_image(
-                            image_bytes,
-                            f"image/{self.config.default_image_format}",
-                            metadata
+                            image_bytes, f"image/{self.config.default_image_format}", metadata
                         )
 
-                        thumbnail_b64 = self.storage_service.get_thumbnail_base64(
-                            stored_info.id
-                        )
+                        thumbnail_b64 = self.storage_service.get_thumbnail_base64(stored_info.id)
                         if thumbnail_b64:
                             thumbnail_bytes = base64.b64decode(thumbnail_b64)
                             thumbnail_image = MCPImage(data=thumbnail_bytes, format="jpeg")
@@ -408,8 +413,7 @@ class ProImageService:
                         )
                     else:
                         mcp_image = MCPImage(
-                            data=image_bytes,
-                            format=self.config.default_image_format
+                            data=image_bytes, format=self.config.default_image_format
                         )
                         mcp_images.append(mcp_image)
 
@@ -418,7 +422,8 @@ class ProImageService:
                         )
 
                 progress.update(
-                    100, f"Successfully edited image with Pro, generated {len(mcp_images)} result(s)"
+                    100,
+                    f"Successfully edited image with Pro, generated {len(mcp_images)} result(s)",
                 )
                 return mcp_images, len(mcp_images)
 
@@ -427,10 +432,7 @@ class ProImageService:
                 raise
 
     def _enhance_prompt_for_pro(
-        self,
-        prompt: str,
-        resolution: str,
-        negative_prompt: str | None
+        self, prompt: str, resolution: str, negative_prompt: str | None
     ) -> str:
         """
         Enhance prompt to leverage Pro model capabilities.
