@@ -1,14 +1,20 @@
 """Gemini 3 Pro Image specialized service for high-quality generation."""
 
 import base64
+import hashlib
 import logging
+import os
+from datetime import datetime
+from io import BytesIO
 from typing import Any
 
 from fastmcp.utilities.types import Image as MCPImage
+from PIL import Image as PILImage
 
 from ..config.settings import MediaResolution, ProImageConfig, ThinkingLevel
 from ..core.progress_tracker import ProgressContext
-from ..utils.image_utils import validate_image_format
+from ..utils.image_utils import create_thumbnail, validate_image_format
+from ..utils.validation_utils import resolve_output_path
 from .gemini_client import GeminiClient
 from .image_storage_service import ImageStorageService
 
@@ -32,6 +38,8 @@ class ProImageService:
         prompt: str,
         n: int = 1,
         resolution: str = "high",
+        aspect_ratio: str | None = None,
+        output_path: str | None = None,
         thinking_level: ThinkingLevel | None = None,
         enable_grounding: bool | None = None,
         media_resolution: MediaResolution | None = None,
@@ -53,6 +61,8 @@ class ProImageService:
             prompt: Main generation prompt
             n: Number of images to generate
             resolution: Output resolution ('high', '4k', '2k', '1k')
+            aspect_ratio: Output aspect ratio (e.g., '1:1', '16:9', '4:5')
+            output_path: Optional output path for saving images
             thinking_level: Reasoning depth (LOW or HIGH)
             enable_grounding: Enable Google Search grounding
             media_resolution: Vision processing detail level
@@ -140,7 +150,8 @@ class ProImageService:
 
                     response = self.gemini_client.generate_content(
                         contents,
-                        config=gen_config
+                        config=gen_config,
+                        aspect_ratio=aspect_ratio,
                     )
                     images = self.gemini_client.extract_images(response)
 
@@ -152,6 +163,7 @@ class ProImageService:
                             "response_index": i + 1,
                             "image_index": j + 1,
                             "resolution": resolution,
+                            "aspect_ratio": aspect_ratio,
                             "thinking_level": thinking_level.value,
                             "media_resolution": media_resolution.value,
                             "grounding_enabled": enable_grounding,
@@ -162,8 +174,64 @@ class ProImageService:
                             "negative_prompt": negative_prompt,
                         }
 
-                        # Storage handling
-                        if use_storage and self.storage_service:
+                        # Storage handling - custom output_path takes precedence
+                        if output_path:
+                            # Save directly to specified output path
+                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            image_hash = hashlib.md5(image_bytes).hexdigest()[:8]
+                            default_filename = f"pro_{timestamp}_{i + 1}_{j + 1}_{image_hash}.{self.config.default_image_format}"
+                            overall_index = (i * len(images)) + j + 1
+
+                            full_path = resolve_output_path(
+                                output_path=output_path,
+                                default_dir=os.path.dirname(output_path) or ".",
+                                default_filename=default_filename,
+                                image_index=overall_index,
+                            )
+
+                            # Ensure output directory exists
+                            os.makedirs(os.path.dirname(full_path) or ".", exist_ok=True)
+
+                            # Write image file
+                            with open(full_path, "wb") as f:
+                                f.write(image_bytes)
+
+                            # Get image dimensions
+                            with PILImage.open(BytesIO(image_bytes)) as img:
+                                width, height = img.size
+
+                            # Create thumbnail alongside the image
+                            path_stem, _ = os.path.splitext(full_path)
+                            thumb_path = f"{path_stem}_thumb.jpeg"
+                            create_thumbnail(full_path, thumb_path, size=256)
+
+                            # Read thumbnail for response
+                            with open(thumb_path, "rb") as f:
+                                thumb_data = f.read()
+
+                            thumbnail_image = MCPImage(data=thumb_data, format="jpeg")
+                            all_images.append(thumbnail_image)
+
+                            metadata.update({
+                                "full_path": full_path,
+                                "thumb_path": thumb_path,
+                                "size_bytes": len(image_bytes),
+                                "width": width,
+                                "height": height,
+                                "is_stored": True,
+                                "output_path_used": True,
+                            })
+
+                            all_metadata.append(metadata)
+
+                            self.logger.info(
+                                f"Generated Pro image {i + 1}.{j + 1} - "
+                                f"saved to {full_path} "
+                                f"({len(image_bytes)} bytes, {width}x{height})"
+                            )
+
+                        elif use_storage and self.storage_service:
+                            # Use storage service for default behavior
                             stored_info = self.storage_service.store_image(
                                 image_bytes,
                                 f"image/{self.config.default_image_format}",

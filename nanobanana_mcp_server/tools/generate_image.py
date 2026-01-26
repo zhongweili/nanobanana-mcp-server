@@ -278,12 +278,17 @@ def register_generate_image_tool(server: FastMCP):
                 # Route to correct service based on selected model tier
                 if selected_tier == ModelTier.PRO:
                     # Use Pro service for high-quality generation
-                    # Note: Pro service doesn't support aspect_ratio or output_path yet
                     logger.info(f"Using PRO model: {model_info['model_id']}")
+                    if aspect_ratio:
+                        logger.info(f"Using aspect ratio: {aspect_ratio}")
+                    if output_path:
+                        logger.info(f"Using output path: {output_path}")
                     thumbnail_images, metadata = selected_service.generate_images(
                         prompt=prompt,
                         n=n,
                         resolution=resolution,
+                        aspect_ratio=aspect_ratio,
+                        output_path=output_path,
                         thinking_level=ThinkingLevel(thinking_level) if thinking_level else None,
                         enable_grounding=enable_grounding,
                         negative_prompt=negative_prompt,
