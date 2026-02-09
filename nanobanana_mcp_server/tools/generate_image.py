@@ -116,6 +116,14 @@ def register_generate_image_tool(server: FastMCP):
                 "If None, uses IMAGE_OUTPUT_DIR environment variable or ~/nanobanana-images."
             ),
         ] = None,
+        return_full_image: Annotated[
+            bool | None,
+            Field(
+                description="Return full-resolution images in MCP response instead of thumbnails. "
+                "Warning: full images can be large (3-7MB each for 4K). "
+                "Default: uses RETURN_FULL_IMAGE env var, or false if not set."
+            ),
+        ] = None,
         _ctx: Context | None = None,
     ) -> ToolResult:
         """
@@ -309,6 +317,16 @@ def register_generate_image_tool(server: FastMCP):
                         output_path=output_path,
                     )
 
+            # Resolve return_full_image: tool param > env var > default (false)
+            effective_return_full_image = return_full_image
+            if effective_return_full_image is None:
+                from ..services import get_server_config
+
+                try:
+                    effective_return_full_image = get_server_config().return_full_image
+                except RuntimeError:
+                    effective_return_full_image = False
+
             # Create response with file paths and thumbnails
             if metadata:
                 # Filter out any None entries from metadata (defensive programming)
@@ -323,6 +341,36 @@ def register_generate_image_tool(server: FastMCP):
                         "mode": detected_mode,
                     }
                     return ToolResult(content=content, structured_content=structured_content)
+
+                # Replace thumbnails with full-resolution images if requested
+                if effective_return_full_image:
+                    from fastmcp.utilities.types import Image as MCPImage
+
+                    full_images = []
+                    total_size = 0
+                    for i, meta in enumerate(metadata):
+                        if not meta or not isinstance(meta, dict):
+                            if i < len(thumbnail_images):
+                                full_images.append(thumbnail_images[i])
+                            continue
+                        full_path = meta.get("full_path")
+                        if full_path and os.path.isfile(full_path):
+                            full_images.append(MCPImage(path=full_path))
+                            total_size += meta.get("size_bytes", 0)
+                        else:
+                            if i < len(thumbnail_images):
+                                full_images.append(thumbnail_images[i])
+                            logger.warning(
+                                f"Full image not found for image {i + 1}, using thumbnail"
+                            )
+
+                    total_size_mb = total_size / (1024 * 1024)
+                    if total_size_mb > 10:
+                        logger.warning(
+                            f"Large MCP response: {total_size_mb:.1f}MB across "
+                            f"{len(full_images)} full-resolution image(s)"
+                        )
+                    thumbnail_images = full_images
 
                 # Build summary with mode-specific information
                 action_verb = "Edited" if detected_mode == "edit" else "Generated"
@@ -382,9 +430,14 @@ def register_generate_image_tool(server: FastMCP):
                         f"     📏 {width}x{height} • 💾 {size_mb}MB{extra_info}"
                     )
 
-                summary_lines.append(
-                    "\n🖼️ **Thumbnail previews shown below** (actual images saved to disk)"
-                )
+                if effective_return_full_image:
+                    summary_lines.append(
+                        "\n🖼️ **Full-resolution images shown below** (also saved to disk)"
+                    )
+                else:
+                    summary_lines.append(
+                        "\n🖼️ **Thumbnail previews shown below** (actual images saved to disk)"
+                    )
                 full_summary = "\n".join(summary_lines)
 
                 content = [TextContent(type="text", text=full_summary), *thumbnail_images]
@@ -395,6 +448,7 @@ def register_generate_image_tool(server: FastMCP):
 
             structured_content = {
                 "mode": detected_mode,
+                "return_full_image": bool(effective_return_full_image),
                 "model_tier": selected_tier.value,
                 "model_name": model_info["name"],
                 "model_id": model_info["model_id"],

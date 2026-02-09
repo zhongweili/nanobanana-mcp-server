@@ -31,6 +31,8 @@ _image_database_service: ImageDatabaseService | None = None
 _image_storage_service: ImageStorageService | None = None
 _maintenance_service: MaintenanceService | None = None
 
+_server_config: ServerConfig | None = None
+
 # Multi-model support services
 _flash_gemini_client: GeminiClient | None = None
 _pro_gemini_client: GeminiClient | None = None
@@ -52,7 +54,10 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
         _flash_gemini_client, \
         _pro_gemini_client, \
         _pro_image_service, \
-        _model_selector
+        _model_selector, \
+        _server_config
+
+    _server_config = server_config
 
     # Initialize core services (legacy compatibility)
     _gemini_client = GeminiClient(server_config, gemini_config)
@@ -81,17 +86,13 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
     _pro_gemini_client = GeminiClient(server_config, pro_config)
 
     # Create Pro image service (Flash uses existing _file_image_service)
-    _pro_image_service = ProImageService(
-        _pro_gemini_client,
-        pro_config,
-        _image_storage_service
-    )
+    _pro_image_service = ProImageService(_pro_gemini_client, pro_config, _image_storage_service)
 
     # Create model selector
     _model_selector = ModelSelector(
         _file_image_service,  # Flash service
-        _pro_image_service,   # Pro service
-        selection_config
+        _pro_image_service,  # Pro service
+        selection_config,
     )
 
 
@@ -170,3 +171,10 @@ def get_model_selector() -> ModelSelector:
     if _model_selector is None:
         raise RuntimeError("Services not initialized. Call initialize_services() first.")
     return _model_selector
+
+
+def get_server_config() -> ServerConfig:
+    """Get the server config instance."""
+    if _server_config is None:
+        raise RuntimeError("Services not initialized. Call initialize_services() first.")
+    return _server_config
