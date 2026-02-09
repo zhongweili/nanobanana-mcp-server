@@ -112,7 +112,7 @@ class ServerConfig:
             port=int(os.getenv("FASTMCP_PORT", "9000")),
             mask_error_details=os.getenv("FASTMCP_MASK_ERRORS", "false").lower() == "true",
             image_output_dir=str(output_path),
-            return_full_image=os.getenv("RETURN_FULL_IMAGE", "false").lower()
+            return_full_image=os.getenv("RETURN_FULL_IMAGE", "false").strip().lower()
             in ("true", "1", "yes"),
         )
 
