@@ -17,10 +17,7 @@ from nanobanana_mcp_server.config.settings import ServerConfig, GeminiConfig
 
 
 # Supported aspect ratios according to Gemini API docs
-SUPPORTED_ASPECT_RATIOS = [
-    "1:1", "2:3", "3:2", "3:4", "4:3",
-    "4:5", "5:4", "9:16", "16:9", "21:9"
-]
+SUPPORTED_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]
 
 
 class TestAspectRatioValidation:
@@ -50,9 +47,9 @@ class TestAspectRatioValidation:
         # Find the generate_image function that was decorated
         generate_image_fn = None
         for name, obj in inspect.getmembers(gi_module):
-            if name == 'register_generate_image_tool':
+            if name == "register_generate_image_tool":
                 continue
-            if callable(obj) and hasattr(obj, '__wrapped__'):
+            if callable(obj) and hasattr(obj, "__wrapped__"):
                 generate_image_fn = obj
                 break
 
@@ -60,12 +57,12 @@ class TestAspectRatioValidation:
         # by examining what register_generate_image_tool registered
         if generate_image_fn is None:
             # Just verify the module has the expected structure
-            assert hasattr(gi_module, 'register_generate_image_tool')
+            assert hasattr(gi_module, "register_generate_image_tool")
             return
 
         # Check that aspect_ratio parameter exists
         sig = inspect.signature(generate_image_fn)
-        assert 'aspect_ratio' in sig.parameters
+        assert "aspect_ratio" in sig.parameters
 
 
 class TestGeminiClientAspectRatio:
@@ -93,25 +90,22 @@ class TestGeminiClientAspectRatio:
 
     def test_aspect_ratio_creates_image_config(self, gemini_client):
         """Test that aspect_ratio parameter creates ImageConfig with aspect_ratio."""
-        with patch('nanobanana_mcp_server.services.gemini_client.gx') as mock_gx:
+        with patch("nanobanana_mcp_server.services.gemini_client.gx") as mock_gx:
             # Setup mocks
             mock_image_config = Mock()
             mock_gx.ImageConfig.return_value = mock_image_config
             mock_gx.GenerateContentConfig = Mock()
 
             # Call generate_content with aspect_ratio
-            gemini_client.generate_content(
-                contents=["test prompt"],
-                aspect_ratio="16:9"
-            )
+            gemini_client.generate_content(contents=["test prompt"], aspect_ratio="16:9")
 
             # Verify ImageConfig was called with aspect_ratio
             call_kwargs = mock_gx.ImageConfig.call_args[1]
-            assert call_kwargs.get('aspect_ratio') == "16:9"
+            assert call_kwargs.get("aspect_ratio") == "16:9"
 
     def test_aspect_ratio_none_does_not_create_image_config(self, gemini_client):
         """Test that aspect_ratio=None does not create ImageConfig when no config needed."""
-        with patch('nanobanana_mcp_server.services.gemini_client.gx') as mock_gx:
+        with patch("nanobanana_mcp_server.services.gemini_client.gx") as mock_gx:
             mock_gx.GenerateContentConfig = Mock()
             mock_gx.ImageConfig = Mock()
 
@@ -124,9 +118,10 @@ class TestGeminiClientAspectRatio:
     def test_config_conflict_warning(self, gemini_client, caplog):
         """Test warning when both config dict and aspect_ratio are provided."""
         import logging
+
         caplog.set_level(logging.WARNING)
 
-        with patch('nanobanana_mcp_server.services.gemini_client.gx') as mock_gx:
+        with patch("nanobanana_mcp_server.services.gemini_client.gx") as mock_gx:
             mock_gx.ImageConfig = Mock()
             mock_gx.GenerateContentConfig = Mock()
 
@@ -134,7 +129,7 @@ class TestGeminiClientAspectRatio:
             gemini_client.generate_content(
                 contents=["test"],
                 aspect_ratio="16:9",
-                config={"resolution": "4k"}  # dict config, not GenerateContentConfig
+                config={"resolution": "4k"},  # dict config, not GenerateContentConfig
             )
 
         # Verify no warning was logged (config dict + aspect_ratio is valid)
@@ -143,18 +138,15 @@ class TestGeminiClientAspectRatio:
 
     def test_response_modalities_set_for_pro_compatibility(self, gemini_client):
         """Test that response_modalities is set to ['TEXT', 'IMAGE'] for Pro model compatibility."""
-        with patch('nanobanana_mcp_server.services.gemini_client.gx') as mock_gx:
+        with patch("nanobanana_mcp_server.services.gemini_client.gx") as mock_gx:
             mock_gx.ImageConfig = Mock()
             mock_gx.GenerateContentConfig = Mock()
 
-            gemini_client.generate_content(
-                contents=["test"],
-                aspect_ratio="16:9"
-            )
+            gemini_client.generate_content(contents=["test"], aspect_ratio="16:9")
 
             # Check that GenerateContentConfig was called with response_modalities
             call_kwargs = mock_gx.GenerateContentConfig.call_args[1]
-            assert call_kwargs.get('response_modalities') == ['TEXT', 'IMAGE']
+            assert call_kwargs.get("response_modalities") == ["TEXT", "IMAGE"]
 
 
 class TestAspectRatioMetadata:
@@ -243,7 +235,7 @@ class TestAspectRatioServicePropagation:
 
         # Check method signature
         sig = inspect.signature(EnhancedImageService.generate_images)
-        assert 'aspect_ratio' in sig.parameters
+        assert "aspect_ratio" in sig.parameters
 
     def test_file_image_service_accepts_aspect_ratio(self):
         """Test FileImageService.generate_images accepts aspect_ratio."""
@@ -251,7 +243,7 @@ class TestAspectRatioServicePropagation:
         import inspect
 
         sig = inspect.signature(FileImageService.generate_images)
-        assert 'aspect_ratio' in sig.parameters
+        assert "aspect_ratio" in sig.parameters
 
     def test_image_service_accepts_aspect_ratio(self):
         """Test ImageService.generate_images accepts aspect_ratio."""
@@ -259,7 +251,7 @@ class TestAspectRatioServicePropagation:
         import inspect
 
         sig = inspect.signature(ImageService.generate_images)
-        assert 'aspect_ratio' in sig.parameters
+        assert "aspect_ratio" in sig.parameters
 
 
 # Test configuration
