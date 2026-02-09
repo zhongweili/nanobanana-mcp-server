@@ -4,7 +4,7 @@ Nano Banana MCP Server - AI-powered image generation and editing via Gemini 2.5 
 A production-ready Model Context Protocol server built with FastMCP.
 """
 
-__version__ = "0.1.5"
+__version__ = "0.3.4"
 __author__ = "Nano Banana Team"
 __email__ = "team@nanobanana.dev"
 __description__ = (
