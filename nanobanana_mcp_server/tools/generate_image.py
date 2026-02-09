@@ -317,7 +317,7 @@ def register_generate_image_tool(server: FastMCP):
                         output_path=output_path,
                     )
 
-            # Resolve return_full_image: tool param > env var > default (false)
+            # Resolve return_full_image: tool param > server config > env var > default (false)
             effective_return_full_image = return_full_image
             if effective_return_full_image is None:
                 from ..services import get_server_config
@@ -325,12 +325,25 @@ def register_generate_image_tool(server: FastMCP):
                 try:
                     effective_return_full_image = get_server_config().return_full_image
                 except RuntimeError:
-                    effective_return_full_image = False
+                    effective_return_full_image = (
+                        os.getenv("RETURN_FULL_IMAGE", "false").strip().lower()
+                        in ("true", "1", "yes")
+                    )
 
             # Create response with file paths and thumbnails
             if metadata:
-                # Filter out any None entries from metadata (defensive programming)
-                metadata = [m for m in metadata if m is not None and isinstance(m, dict)]
+                # Filter out any None entries from metadata, keeping thumbnail_images aligned
+                filtered_pairs = [
+                    (m, thumbnail_images[i] if i < len(thumbnail_images) else None)
+                    for i, m in enumerate(metadata)
+                    if m is not None and isinstance(m, dict)
+                ]
+                if filtered_pairs:
+                    metadata, thumbnail_images = zip(*filtered_pairs, strict=False)
+                    metadata = list(metadata)
+                    thumbnail_images = [img for img in thumbnail_images if img is not None]
+                else:
+                    metadata = []
 
                 if not metadata:
                     summary = f"❌ Failed to {detected_mode} image(s): {prompt[:50]}... No valid results returned."
