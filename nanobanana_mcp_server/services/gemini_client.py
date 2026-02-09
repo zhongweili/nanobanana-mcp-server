@@ -22,7 +22,7 @@ class GeminiClient:
     def __init__(
         self,
         config: ServerConfig,
-        gemini_config: GeminiConfig | BaseModelConfig | FlashImageConfig | ProImageConfig
+        gemini_config: GeminiConfig | BaseModelConfig | FlashImageConfig | ProImageConfig,
     ):
         self.config = config
         self.gemini_config = gemini_config
@@ -42,7 +42,7 @@ class GeminiClient:
                 self._client = genai.Client(
                     vertexai=True,
                     project=self.config.gcp_project_id,
-                    location=self.config.gcp_region
+                    location=self.config.gcp_region,
                 )
                 self._log_auth_method(f"ADC (Vertex AI - {self.config.gcp_region})")
         return self._client
@@ -70,7 +70,9 @@ class GeminiClient:
             return []
 
         if len(images_b64) != len(mime_types):
-            raise ValueError(f"Images and MIME types count mismatch: {len(images_b64)} vs {len(mime_types)}")
+            raise ValueError(
+                f"Images and MIME types count mismatch: {len(images_b64)} vs {len(mime_types)}"
+            )
 
         parts = []
         for i, (b64, mime_type) in enumerate(zip(images_b64, mime_types, strict=False)):
@@ -96,7 +98,7 @@ class GeminiClient:
         contents: list,
         config: dict[str, Any] | None = None,
         aspect_ratio: str | None = None,
-        **kwargs
+        **kwargs,
     ) -> any:
         """
         Generate content using Gemini API with model-aware parameter handling.
@@ -208,7 +210,9 @@ class GeminiClient:
             # Grounding is controlled via prompt/system instructions
             # thinking_level is NOT available for this model
             if "thinking_level" in config:
-                self.logger.info("Note: thinking_level is not supported by gemini-3-pro-image-preview, ignoring")
+                self.logger.info(
+                    "Note: thinking_level is not supported by gemini-3-pro-image-preview, ignoring"
+                )
 
         else:
             # Flash model - warn if Pro parameters are used
