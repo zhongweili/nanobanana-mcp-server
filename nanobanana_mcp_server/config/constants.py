@@ -38,12 +38,10 @@ ERROR_MESSAGES = {
 # Authentication error messages
 AUTH_ERROR_MESSAGES = {
     "vertex_ai_project_required": (
-        "Vertex AI authentication requires GCP_PROJECT_ID or "
-        "GOOGLE_CLOUD_PROJECT to be set."
+        "Vertex AI authentication requires GCP_PROJECT_ID or GOOGLE_CLOUD_PROJECT to be set."
     ),
     "api_key_required": (
-        "API Key authentication requires GEMINI_API_KEY or "
-        "GOOGLE_API_KEY to be set."
+        "API Key authentication requires GEMINI_API_KEY or GOOGLE_API_KEY to be set."
     ),
     "no_auth_configured": (
         "No valid authentication configuration found.\n"
