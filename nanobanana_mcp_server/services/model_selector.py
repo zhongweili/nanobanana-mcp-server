@@ -124,11 +124,8 @@ class ModelSelector:
         quality_score += strong_quality_matches * 2  # Double weight
 
         # Resolution parameter analysis
-        # Note: NB2 also supports 4K, so resolution alone doesn't force PRO.
-        # Only "4k" gets a modest boost; "high"/"2k" are NB2's native territory.
-        resolution = kwargs.get("resolution", "").lower()
-        if resolution == "4k":
-            quality_score += 1
+        # NB2 supports 4K natively, so resolution alone is not a PRO signal.
+        # PRO is only favoured by strong quality keywords or thinking_level=high.
 
         # Batch size consideration
         n = kwargs.get("n", 1)
@@ -147,7 +144,7 @@ class ModelSelector:
             )
 
         # Thinking level hint — PRO-only feature, strong signal
-        thinking_level = kwargs.get("thinking_level", "").lower()
+        thinking_level = (kwargs.get("thinking_level") or "").lower()
         if thinking_level == "high":
             quality_score += 3
             self.logger.debug("thinking_level=high requested - favoring Pro model")
