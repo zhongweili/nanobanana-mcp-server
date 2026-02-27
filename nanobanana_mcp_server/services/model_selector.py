@@ -124,13 +124,11 @@ class ModelSelector:
         quality_score += strong_quality_matches * 2  # Double weight
 
         # Resolution parameter analysis
+        # Note: NB2 also supports 4K, so resolution alone doesn't force PRO.
+        # Only "4k" gets a modest boost; "high"/"2k" are NB2's native territory.
         resolution = kwargs.get("resolution", "").lower()
-        if resolution in ["4k", "high", "2k"]:
-            quality_score += 3
-        elif resolution == "4k":
-            # 4K explicitly requires Pro model
-            self.logger.info("4K resolution requested - Pro model required")
-            return ModelTier.PRO
+        if resolution == "4k":
+            quality_score += 1
 
         # Batch size consideration
         n = kwargs.get("n", 1)
@@ -148,16 +146,13 @@ class ModelSelector:
                 f"Multi-image conditioning ({len(input_images)} images), favoring quality"
             )
 
-        # Thinking level hint
+        # Thinking level hint — PRO-only feature, strong signal
         thinking_level = kwargs.get("thinking_level", "").lower()
         if thinking_level == "high":
-            quality_score += 1
+            quality_score += 3
+            self.logger.debug("thinking_level=high requested - favoring Pro model")
 
-        # Enable grounding hint
-        enable_grounding = kwargs.get("enable_grounding", False)
-        if enable_grounding:
-            quality_score += 2  # Grounding is Pro-only feature
-            self.logger.debug("Grounding requested - favoring Pro model")
+        # Note: enable_grounding no longer boosts Pro — NB2 also supports grounding
 
         # Decision logic
         self.logger.debug(
