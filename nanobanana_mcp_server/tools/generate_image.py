@@ -91,9 +91,9 @@ def register_generate_image_tool(server: FastMCP):
             str | None,
             Field(
                 description="Reasoning depth for Pro model: 'low' (faster), 'high' (better quality). "
-                "Only applies to Pro model. Default: 'high'."
+                "Only applies to Pro model. Default: None (auto)."
             ),
-        ] = "high",
+        ] = None,
         enable_grounding: Annotated[
             bool,
             Field(
@@ -412,7 +412,7 @@ def register_generate_image_tool(server: FastMCP):
 
                 # Add model-specific information
                 if selected_tier == ModelTier.PRO:
-                    summary_lines.append(f"🧠 **Thinking Level**: {thinking_level}")
+                    summary_lines.append(f"🧠 **Thinking Level**: {thinking_level or 'auto'}")
                     summary_lines.append(f"📏 **Resolution**: {resolution}")
                     if enable_grounding:
                         summary_lines.append("🔍 **Grounding**: Enabled (Google Search)")
