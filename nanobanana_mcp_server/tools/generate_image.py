@@ -75,8 +75,9 @@ def register_generate_image_tool(server: FastMCP):
         model_tier: Annotated[
             str | None,
             Field(
-                description="Model tier: 'flash' (speed, 1024px), 'pro' (quality, up to 4K), or 'auto' (smart selection). "
-                "Default: 'auto' - automatically selects based on prompt quality/speed indicators."
+                description="Model tier: 'flash' (legacy, 1024px), 'nb2' (4K at Flash speed, default), "
+                "'pro' (max quality, 4K), or 'auto' (smart selection). "
+                "Default: 'auto' - automatically selects nb2 or pro based on prompt."
             ),
         ] = "auto",
         resolution: Annotated[
@@ -304,6 +305,21 @@ def register_generate_image_tool(server: FastMCP):
                         input_images=input_images,
                         use_storage=True,
                     )
+                elif selected_tier == ModelTier.NB2:
+                    # Use NB2 service (Flash speed + Pro quality, no thinking_level)
+                    logger.info(f"Using NB2 model: {model_info['model_id']}")
+                    thumbnail_images, metadata = selected_service.generate_images(
+                        prompt=prompt,
+                        n=n,
+                        resolution=resolution,
+                        aspect_ratio=aspect_ratio,
+                        output_path=output_path,
+                        enable_grounding=enable_grounding,
+                        negative_prompt=negative_prompt,
+                        system_instruction=system_instruction,
+                        input_images=input_images,
+                        use_storage=True,
+                    )
                 else:
                     # Use Flash service (via enhanced_image_service) for speed
                     logger.info(f"Using FLASH model: {model_info['model_id']}")
@@ -394,9 +410,13 @@ def register_generate_image_tool(server: FastMCP):
                     f"📊 **Model**: {selected_tier.value.upper()} tier",
                 ]
 
-                # Add Pro-specific information
+                # Add model-specific information
                 if selected_tier == ModelTier.PRO:
                     summary_lines.append(f"🧠 **Thinking Level**: {thinking_level}")
+                    summary_lines.append(f"📏 **Resolution**: {resolution}")
+                    if enable_grounding:
+                        summary_lines.append("🔍 **Grounding**: Enabled (Google Search)")
+                elif selected_tier == ModelTier.NB2:
                     summary_lines.append(f"📏 **Resolution**: {resolution}")
                     if enable_grounding:
                         summary_lines.append("🔍 **Grounding**: Enabled (Google Search)")
@@ -469,7 +489,7 @@ def register_generate_image_tool(server: FastMCP):
                 "auto_selected": tier == ModelTier.AUTO,
                 "thinking_level": thinking_level if selected_tier == ModelTier.PRO else None,
                 "resolution": resolution,
-                "grounding_enabled": enable_grounding if selected_tier == ModelTier.PRO else False,
+                "grounding_enabled": enable_grounding if selected_tier in (ModelTier.PRO, ModelTier.NB2) else False,
                 "requested": n,
                 "returned": len(thumbnail_images),
                 "negative_prompt_applied": bool(negative_prompt),

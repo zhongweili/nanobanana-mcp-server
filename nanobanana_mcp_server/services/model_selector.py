@@ -20,6 +20,7 @@ class ModelSelector:
         self,
         flash_service: ImageService,
         pro_service: ProImageService,
+        nb2_service: ProImageService,
         selection_config: ModelSelectionConfig,
     ):
         """
@@ -28,10 +29,12 @@ class ModelSelector:
         Args:
             flash_service: Gemini 2.5 Flash Image service (speed-optimized)
             pro_service: Gemini 3 Pro Image service (quality-optimized)
+            nb2_service: Gemini 3.1 Flash Image service (Flash speed + Pro quality)
             selection_config: Selection strategy configuration
         """
         self.flash_service = flash_service
         self.pro_service = pro_service
+        self.nb2_service = nb2_service
         self.config = selection_config
         self.logger = logging.getLogger(__name__)
 
@@ -58,18 +61,27 @@ class ModelSelector:
             self.logger.info("Explicit Pro model selection")
             return self.pro_service, ModelTier.PRO
 
+        if requested_tier == ModelTier.NB2:
+            self.logger.info("Explicit Nano Banana 2 model selection")
+            return self.nb2_service, ModelTier.NB2
+
         # Auto selection logic
         if requested_tier == ModelTier.AUTO or requested_tier is None:
             tier = self._auto_select(prompt, **kwargs)
-            service = self.pro_service if tier == ModelTier.PRO else self.flash_service
+            if tier == ModelTier.PRO:
+                service = self.pro_service
+            elif tier == ModelTier.FLASH:
+                service = self.flash_service
+            else:  # NB2
+                service = self.nb2_service
             self.logger.info(
                 f"Auto-selected {tier.value.upper()} model for prompt: '{prompt[:50]}...'"
             )
             return service, tier
 
-        # Fallback to Flash for unknown values
-        self.logger.warning(f"Unknown model tier '{requested_tier}', falling back to Flash")
-        return self.flash_service, ModelTier.FLASH
+        # Fallback to NB2 for unknown values
+        self.logger.warning(f"Unknown model tier '{requested_tier}', falling back to NB2")
+        return self.nb2_service, ModelTier.NB2
 
     def _auto_select(self, prompt: str, **kwargs) -> ModelTier:
         """
@@ -159,9 +171,9 @@ class ModelSelector:
             return ModelTier.PRO
         else:
             self.logger.info(
-                f"Selected FLASH model (speed_score={speed_score} >= quality_score={quality_score})"
+                f"Selected NB2 model (speed_score={speed_score} >= quality_score={quality_score})"
             )
-            return ModelTier.FLASH
+            return ModelTier.NB2
 
     def get_model_info(self, tier: ModelTier) -> dict:
         """
@@ -187,6 +199,22 @@ class ModelSelector:
                 ],
                 "best_for": "Professional assets, production-ready images",
                 "emoji": "🏆",
+            }
+        elif tier == ModelTier.NB2:
+            return {
+                "tier": "nb2",
+                "name": "Gemini 3.1 Flash Image",
+                "model_id": "gemini-3.1-flash-image-preview",
+                "max_resolution": "4K (3840px)",
+                "features": [
+                    "Flash-speed generation",
+                    "4K resolution",
+                    "Google Search grounding",
+                    "Subject consistency (5 chars, 14 objects)",
+                    "Precision text rendering",
+                ],
+                "best_for": "Production images at Flash speed",
+                "emoji": "🍌",
             }
         else:  # FLASH
             return {
