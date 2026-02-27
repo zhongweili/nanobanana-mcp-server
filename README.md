@@ -2,15 +2,15 @@
 
 A production-ready **Model Context Protocol (MCP)** server that provides AI-powered image generation capabilities through Google's **Gemini** models with intelligent model selection.
 
-## ⭐ NEW: Gemini 3 Pro Image Support! 🚀
+## ⭐ NEW: Nano Banana 2 — Gemini 3.1 Flash Image! 🍌🚀
 
-Now featuring **Nano Banana Pro** - Google's latest and most powerful image generation model:
+**Nano Banana 2** (`gemini-3.1-flash-image-preview`) is now the **default model** — delivering Pro-level quality at Flash speed:
 
-- 🏆 **Professional 4K Quality**: Generate stunning images up to 3840px resolution
-- 🌐 **Google Search Grounding**: Access real-world knowledge for factually accurate images
-- 🧠 **Advanced Reasoning**: Configurable thinking levels for complex compositions
-- 🎯 **Superior Text Rendering**: Crystal-clear text in images at high resolution
-- 🎨 **Enhanced Understanding**: Better context comprehension for complex prompts
+- 🍌 **Flash Speed + 4K Quality**: Up to 3840px at Gemini 2.5 Flash latency
+- 🌐 **Google Search Grounding**: Real-world knowledge for factually accurate images
+- 🎯 **Subject Consistency**: Up to 5 characters and 14 objects per scene
+- ✍️ **Precision Text Rendering**: Crystal-clear text placement in images
+- 🏆 **Gemini 3 Pro Image** still available for maximum reasoning depth
 
 <a href="https://glama.ai/mcp/servers/@zhongweili/nanobanana-mcp-server">
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@zhongweili/nanobanana-mcp-server/badge" alt="nanobanana-mcp-server MCP server" />
@@ -18,10 +18,11 @@ Now featuring **Nano Banana Pro** - Google's latest and most powerful image gene
 
 ## ✨ Features
 
-- 🎨 **Multi-Model AI Image Generation**: Intelligent selection between Flash (speed) and Pro (quality) models
-- ⚡ **Gemini 2.5 Flash Image**: Fast generation (1024px) for rapid prototyping
-- 🏆 **Gemini 3 Pro Image**: High-quality up to 4K with Google Search grounding
-- 🤖 **Smart Model Selection**: Automatically chooses optimal model based on your prompt
+- 🎨 **Multi-Model AI Image Generation**: Three Gemini models with intelligent automatic selection
+- 🍌 **Gemini 3.1 Flash Image (NB2)**: Default model — 4K resolution at Flash speed with grounding
+- 🏆 **Gemini 3 Pro Image**: Maximum reasoning depth for the most complex compositions
+- ⚡ **Gemini 2.5 Flash Image**: Legacy Flash model for high-volume rapid prototyping
+- 🤖 **Smart Model Selection**: Automatically routes to NB2 or Pro based on your prompt
 - 📐 **Aspect Ratio Control** ⭐ NEW: Specify output dimensions (1:1, 16:9, 9:16, 21:9, and more)
 - 📋 **Smart Templates**: Pre-built prompt templates for photography, design, and editing
 - 📁 **File Management**: Upload and manage files via Gemini Files API
@@ -234,83 +235,90 @@ python -m nanobanana_mcp_server.server
 
 ## 🤖 Model Selection
 
-Nano Banana supports two Gemini models with intelligent automatic selection:
+Nano Banana supports three Gemini models with intelligent automatic selection:
 
-### 🏆 Pro Model - Nano Banana Pro (Gemini 3 Pro Image) ⭐ NEW!
+### 🍌 NB2 — Nano Banana 2 (Gemini 3.1 Flash Image) ⭐ DEFAULT
 
-**Google's latest and most advanced image generation model**
+**Flash speed with Pro-level quality — the best of both worlds**
 
-- **Quality**: Professional-grade, production-ready
-- **Resolution**: Up to 4K (3840px) - highest available
+- **Quality**: Production-ready 4K output
+- **Resolution**: Up to 4K (3840px)
+- **Speed**: ~2-4 seconds per image (Flash-class latency)
+- **Special Features**:
+  - 🌐 **Google Search Grounding**: Real-world knowledge for factually accurate images
+  - 🎯 **Subject Consistency**: Up to 5 characters and 14 objects per scene
+  - ✍️ **Precision Text Rendering**: Clear, well-placed text in images
+- **Best for**: Almost everything — production assets, marketing, photography, text overlays
+- **model_tier**: `"nb2"` (or `"auto"` — NB2 is the auto default)
+
+### 🏆 Pro Model — Nano Banana Pro (Gemini 3 Pro Image)
+
+**Maximum reasoning depth for the most demanding compositions**
+
+- **Quality**: Highest available
+- **Resolution**: Up to 4K (3840px)
 - **Speed**: ~5-8 seconds per image
 - **Special Features**:
-  - 🌐 **Google Search Grounding**: Leverages real-world knowledge for accurate, contextual images
-  - 🧠 **Advanced Reasoning**: Configurable thinking levels (LOW/HIGH) for complex compositions
-  - 📐 **Media Resolution Control**: Fine-tune vision processing detail (LOW/MEDIUM/HIGH/AUTO)
-  - 📝 **Superior Text Rendering**: Exceptional clarity for text-in-image generation
-  - 🎨 **Enhanced Context Understanding**: Better interpretation of complex, narrative prompts
-- **Best for**: Production assets, marketing materials, professional photography, high-fidelity outputs, images requiring text, factual accuracy
-- **Cost**: Higher per image (premium quality)
+  - 🧠 **Advanced Reasoning**: Configurable thinking levels (LOW/HIGH)
+  - 🌐 **Google Search Grounding**: Real-world knowledge integration
+  - 📐 **Media Resolution Control**: Fine-tune vision processing detail
+- **Best for**: Complex narrative scenes, intricate compositions, maximum reasoning required
+- **model_tier**: `"pro"`
 
 ### ⚡ Flash Model (Gemini 2.5 Flash Image)
 
-**Fast, reliable model for rapid iteration**
+**Legacy model for high-volume rapid iteration**
 
 - **Speed**: Very fast (2-3 seconds)
 - **Resolution**: Up to 1024px
-- **Quality**: High quality for everyday use
-- **Best for**: Rapid prototyping, iterations, high-volume generation, drafts, sketches
-- **Cost**: Lower per image
+- **Best for**: High-volume generation, quick drafts where 4K is not needed
+- **model_tier**: `"flash"`
 
 ### 🤖 Automatic Selection (Recommended)
 
-By default, the server uses **AUTO** mode which intelligently analyzes your prompt and requirements:
+By default, the server uses **AUTO** mode which routes to **NB2** unless Pro's deeper reasoning is clearly needed:
 
 **Pro Model Selected When**:
 
-- Quality keywords detected: "4K", "professional", "production", "high-res", "HD"
-- High resolution requested: `resolution="4k"` or `resolution="high"`
-- Google Search grounding enabled: `enable_grounding=True`
+- Strong quality keywords: "4K", "professional", "production", "high-res", "HD"
 - High thinking level requested: `thinking_level="HIGH"`
 - Multi-image conditioning with multiple input images
 
-**Flash Model Selected When**:
+**NB2 Model Selected When** (default):
 
-- Speed keywords detected: "quick", "draft", "sketch", "rapid"
-- High-volume batch generation: `n > 2`
-- Standard or lower resolution requested
-- No special Pro features required
+- Standard requests, everyday image generation
+- Speed keywords: "quick", "draft", "sketch", "rapid"
+- High-volume batch generation (`n > 2`)
 
 ### Usage Examples
 
 ```python
-# Automatic selection (recommended)
-"Generate a professional 4K product photo"  # → Pro model (quality keywords + 4K)
-"Quick sketch of a cat"                     # → Flash model (speed keyword)
-"Create a diagram with clear text labels"   # → Pro model (text rendering)
-"Draft mockup for website hero section"     # → Flash model (draft keyword)
+# Automatic selection (recommended) — routes to NB2 by default
+"A cat sitting on a windowsill"             # → NB2 (default)
+"Quick sketch of a cat"                     # → NB2 (speed keyword, NB2 is fast enough)
+"Professional 4K product photo"             # → Pro (strong quality keywords)
 
-# Explicit model selection
+# Explicit NB2 selection
 generate_image(
-    prompt="A scenic landscape",
-    model_tier="flash"  # Force Flash model for speed
+    prompt="Product photo on white background",
+    model_tier="nb2",              # Nano Banana 2 (Flash speed + 4K)
+    resolution="4k",
+    enable_grounding=True
 )
 
-# Leverage Nano Banana Pro features
+# Leverage Nano Banana Pro for complex reasoning
 generate_image(
-    prompt="Professional product photo of vintage camera on wooden desk",
-    model_tier="pro",              # Use Pro model
-    resolution="4k",               # 4K resolution (Pro-only)
+    prompt="Cinematic scene: three characters in a tense standoff at dusk",
+    model_tier="pro",              # Pro for deep reasoning
+    resolution="4k",
     thinking_level="HIGH",         # Enhanced reasoning
-    enable_grounding=True,         # Use Google Search for accuracy
-    media_resolution="HIGH"        # High-detail vision processing
+    enable_grounding=True
 )
 
-# Pro model for high-quality text rendering
+# Legacy Flash for high-volume drafts
 generate_image(
-    prompt="Infographic showing 2024 market statistics with clear labels",
-    model_tier="pro",              # Pro excels at text rendering
-    resolution="4k"                # Maximum clarity for text
+    prompt="Simple icon",
+    model_tier="flash"             # Fast 1024px generation
 )
 
 # Control aspect ratio for different formats ⭐ NEW!
@@ -442,7 +450,7 @@ GCP_PROJECT_ID=your-project-id
 GCP_REGION=us-central1
 
 # Model Selection (optional)
-NANOBANANA_MODEL=auto  # Options: flash, pro, auto (default: auto)
+NANOBANANA_MODEL=auto  # Options: flash, nb2, pro, auto (default: auto → nb2)
 
 # Optional
 IMAGE_OUTPUT_DIR=/path/to/image/directory  # Default: ~/nanobanana-images

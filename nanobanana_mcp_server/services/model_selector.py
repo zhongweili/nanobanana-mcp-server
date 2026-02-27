@@ -20,6 +20,7 @@ class ModelSelector:
         self,
         flash_service: ImageService,
         pro_service: ProImageService,
+        nb2_service: ProImageService,
         selection_config: ModelSelectionConfig,
     ):
         """
@@ -28,10 +29,12 @@ class ModelSelector:
         Args:
             flash_service: Gemini 2.5 Flash Image service (speed-optimized)
             pro_service: Gemini 3 Pro Image service (quality-optimized)
+            nb2_service: Gemini 3.1 Flash Image service (Flash speed + Pro quality)
             selection_config: Selection strategy configuration
         """
         self.flash_service = flash_service
         self.pro_service = pro_service
+        self.nb2_service = nb2_service
         self.config = selection_config
         self.logger = logging.getLogger(__name__)
 
@@ -58,18 +61,27 @@ class ModelSelector:
             self.logger.info("Explicit Pro model selection")
             return self.pro_service, ModelTier.PRO
 
+        if requested_tier == ModelTier.NB2:
+            self.logger.info("Explicit Nano Banana 2 model selection")
+            return self.nb2_service, ModelTier.NB2
+
         # Auto selection logic
         if requested_tier == ModelTier.AUTO or requested_tier is None:
             tier = self._auto_select(prompt, **kwargs)
-            service = self.pro_service if tier == ModelTier.PRO else self.flash_service
+            if tier == ModelTier.PRO:
+                service = self.pro_service
+            elif tier == ModelTier.FLASH:
+                service = self.flash_service
+            else:  # NB2
+                service = self.nb2_service
             self.logger.info(
                 f"Auto-selected {tier.value.upper()} model for prompt: '{prompt[:50]}...'"
             )
             return service, tier
 
-        # Fallback to Flash for unknown values
-        self.logger.warning(f"Unknown model tier '{requested_tier}', falling back to Flash")
-        return self.flash_service, ModelTier.FLASH
+        # Fallback to NB2 for unknown values
+        self.logger.warning(f"Unknown model tier '{requested_tier}', falling back to NB2")
+        return self.nb2_service, ModelTier.NB2
 
     def _auto_select(self, prompt: str, **kwargs) -> ModelTier:
         """
@@ -112,13 +124,8 @@ class ModelSelector:
         quality_score += strong_quality_matches * 2  # Double weight
 
         # Resolution parameter analysis
-        resolution = kwargs.get("resolution", "").lower()
-        if resolution in ["4k", "high", "2k"]:
-            quality_score += 3
-        elif resolution == "4k":
-            # 4K explicitly requires Pro model
-            self.logger.info("4K resolution requested - Pro model required")
-            return ModelTier.PRO
+        # NB2 supports 4K natively, so resolution alone is not a PRO signal.
+        # PRO is only favoured by strong quality keywords or thinking_level=high.
 
         # Batch size consideration
         n = kwargs.get("n", 1)
@@ -136,16 +143,13 @@ class ModelSelector:
                 f"Multi-image conditioning ({len(input_images)} images), favoring quality"
             )
 
-        # Thinking level hint
-        thinking_level = kwargs.get("thinking_level", "").lower()
+        # Thinking level hint — PRO-only feature, strong signal
+        thinking_level = (kwargs.get("thinking_level") or "").lower()
         if thinking_level == "high":
-            quality_score += 1
+            quality_score += 3
+            self.logger.debug("thinking_level=high requested - favoring Pro model")
 
-        # Enable grounding hint
-        enable_grounding = kwargs.get("enable_grounding", False)
-        if enable_grounding:
-            quality_score += 2  # Grounding is Pro-only feature
-            self.logger.debug("Grounding requested - favoring Pro model")
+        # Note: enable_grounding no longer boosts Pro — NB2 also supports grounding
 
         # Decision logic
         self.logger.debug(
@@ -159,9 +163,9 @@ class ModelSelector:
             return ModelTier.PRO
         else:
             self.logger.info(
-                f"Selected FLASH model (speed_score={speed_score} >= quality_score={quality_score})"
+                f"Selected NB2 model (speed_score={speed_score} >= quality_score={quality_score})"
             )
-            return ModelTier.FLASH
+            return ModelTier.NB2
 
     def get_model_info(self, tier: ModelTier) -> dict:
         """
@@ -187,6 +191,22 @@ class ModelSelector:
                 ],
                 "best_for": "Professional assets, production-ready images",
                 "emoji": "🏆",
+            }
+        elif tier == ModelTier.NB2:
+            return {
+                "tier": "nb2",
+                "name": "Gemini 3.1 Flash Image",
+                "model_id": "gemini-3.1-flash-image-preview",
+                "max_resolution": "4K (3840px)",
+                "features": [
+                    "Flash-speed generation",
+                    "4K resolution",
+                    "Google Search grounding",
+                    "Subject consistency (5 chars, 14 objects)",
+                    "Precision text rendering",
+                ],
+                "best_for": "Production images at Flash speed",
+                "emoji": "🍌",
             }
         else:  # FLASH
             return {

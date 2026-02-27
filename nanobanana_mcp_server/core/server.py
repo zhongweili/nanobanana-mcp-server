@@ -26,8 +26,11 @@ class NanoBananaMCP:
         """Get server description and instructions."""
         return (
             "This server exposes image generation & editing powered by "
-            "Gemini 2.5 Flash Image (aka 'nano banana'). It returns images "
-            "as real MCP image content blocks, and also provides structured "
+            "Gemini 3.1 Flash Image (aka 'nano banana 2') by default — "
+            "Flash-speed generation with 4K resolution, Google Search grounding, "
+            "and subject consistency. Also supports Gemini 3 Pro Image for maximum "
+            "reasoning quality, and legacy Gemini 2.5 Flash Image. "
+            "Returns images as real MCP image content blocks, and also provides structured "
             "JSON with metadata and reproducibility hints."
         )
 
