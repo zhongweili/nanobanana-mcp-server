@@ -7,6 +7,7 @@ from ..config.settings import (
     FlashImageConfig,
     GeminiConfig,
     ModelSelectionConfig,
+    NanoBanana2Config,
     ProImageConfig,
     ServerConfig,
 )
@@ -37,6 +38,8 @@ _server_config: ServerConfig | None = None
 _flash_gemini_client: GeminiClient | None = None
 _pro_gemini_client: GeminiClient | None = None
 _pro_image_service: ProImageService | None = None
+_nb2_gemini_client: GeminiClient | None = None
+_nb2_image_service: ProImageService | None = None
 _model_selector: ModelSelector | None = None
 
 
@@ -54,6 +57,8 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
         _flash_gemini_client, \
         _pro_gemini_client, \
         _pro_image_service, \
+        _nb2_gemini_client, \
+        _nb2_image_service, \
         _model_selector, \
         _server_config
 
@@ -88,10 +93,16 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
     # Create Pro image service (Flash uses existing _file_image_service)
     _pro_image_service = ProImageService(_pro_gemini_client, pro_config, _image_storage_service)
 
+    # Create NB2 image service (Gemini 3.1 Flash Image — Flash speed + Pro quality)
+    nb2_config = NanoBanana2Config()
+    _nb2_gemini_client = GeminiClient(server_config, nb2_config)
+    _nb2_image_service = ProImageService(_nb2_gemini_client, nb2_config, _image_storage_service)
+
     # Create model selector
     _model_selector = ModelSelector(
         _file_image_service,  # Flash service
         _pro_image_service,  # Pro service
+        _nb2_image_service,  # NB2 service
         selection_config,
     )
 
@@ -164,6 +175,13 @@ def get_pro_image_service() -> ProImageService:
     if _pro_image_service is None:
         raise RuntimeError("Services not initialized. Call initialize_services() first.")
     return _pro_image_service
+
+
+def get_nb2_image_service() -> ProImageService:
+    """Get the Nano Banana 2 image service instance."""
+    if _nb2_image_service is None:
+        raise RuntimeError("Services not initialized. Call initialize_services() first.")
+    return _nb2_image_service
 
 
 def get_model_selector() -> ModelSelector:
