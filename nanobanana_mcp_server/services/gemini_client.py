@@ -1,6 +1,7 @@
 import base64
 import logging
 from typing import Any
+from urllib.parse import urlsplit
 
 from google import genai
 from google.genai import types as gx
@@ -37,7 +38,8 @@ class GeminiClient:
             http_options = None
             if self.config.gemini_base_url:
                 http_options = {"base_url": self.config.gemini_base_url}
-                self.logger.info(f"Using custom base URL: {self.config.gemini_base_url}")
+                safe_url = self._get_safe_base_url_for_log(self.config.gemini_base_url)
+                self.logger.info(f"Using custom base URL: {safe_url}")
 
             if self.config.auth_method == AuthMethod.API_KEY:
                 if not self.config.gemini_api_key:
@@ -58,6 +60,17 @@ class GeminiClient:
                 self._client = genai.Client(**client_kwargs)
                 self._log_auth_method(f"ADC (Vertex AI - {self.config.gcp_region})")
         return self._client
+
+    @staticmethod
+    def _get_safe_base_url_for_log(raw_url: str) -> str:
+        """Return a sanitized base URL for logs (no credentials/query/fragment/path)."""
+        parsed = urlsplit(raw_url.strip())
+        if parsed.scheme and parsed.hostname:
+            host = parsed.hostname
+            if parsed.port:
+                host = f"{host}:{parsed.port}"
+            return f"{parsed.scheme}://{host}"
+        return "[invalid-base-url]"
 
     def _log_auth_method(self, method: str):
         """Log the authentication method in use."""

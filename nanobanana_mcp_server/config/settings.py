@@ -104,7 +104,7 @@ class ServerConfig:
         output_path = Path(output_dir).resolve()
         output_path.mkdir(parents=True, exist_ok=True)
 
-        gemini_base_url = os.getenv("GEMINI_BASE_URL")
+        gemini_base_url = os.getenv("GEMINI_BASE_URL", "").strip() or None
 
         return cls(
             gemini_api_key=api_key,
