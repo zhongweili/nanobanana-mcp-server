@@ -44,6 +44,20 @@ class TestAuthConfiguration:
                 with pytest.raises(ValueError):
                     ServerConfig.from_env()
 
+    def test_gemini_base_url_whitespace_becomes_none(self):
+        """Whitespace-only GEMINI_BASE_URL should be treated as unset."""
+        with patch("nanobanana_mcp_server.config.settings.load_dotenv"):
+            with patch.dict(
+                os.environ,
+                {
+                    "GEMINI_API_KEY": "test-key",
+                    "GEMINI_BASE_URL": "   ",
+                },
+                clear=True,
+            ):
+                config = ServerConfig.from_env()
+                assert config.gemini_base_url is None
+
 
 class TestGeminiClientAuth:
     @patch("google.genai.Client")
@@ -76,3 +90,23 @@ class TestGeminiClientAuth:
         mock_client_cls.assert_called_with(
             vertexai=True, project="test-project", location="us-central1"
         )
+
+    @patch("google.genai.Client")
+    def test_api_key_client_creation_with_base_url_uses_http_options(self, mock_client_cls):
+        """Custom base URL should be passed via http_options for API key auth."""
+        config = ServerConfig(
+            gemini_api_key="test-key",
+            auth_method=AuthMethod.API_KEY,
+            gemini_base_url="https://proxy.example.com/v1beta?token=secret",
+        )
+        gemini_config = GeminiConfig()
+        client = GeminiClient(config, gemini_config)
+        client.logger = MagicMock()
+
+        _ = client.client
+
+        mock_client_cls.assert_called_with(
+            api_key="test-key",
+            http_options={"base_url": "https://proxy.example.com/v1beta?token=secret"},
+        )
+        client.logger.info.assert_any_call("Using custom base URL: https://proxy.example.com")

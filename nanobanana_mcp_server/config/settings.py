@@ -57,6 +57,7 @@ class ServerConfig:
     auth_method: AuthMethod = AuthMethod.AUTO
     gcp_project_id: str | None = None
     gcp_region: str = "us-central1"
+    gemini_base_url: str | None = None
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
@@ -103,11 +104,14 @@ class ServerConfig:
         output_path = Path(output_dir).resolve()
         output_path.mkdir(parents=True, exist_ok=True)
 
+        gemini_base_url = os.getenv("GEMINI_BASE_URL", "").strip() or None
+
         return cls(
             gemini_api_key=api_key,
             auth_method=auth_method,
             gcp_project_id=gcp_project,
             gcp_region=gcp_region,
+            gemini_base_url=gemini_base_url,
             transport=os.getenv("FASTMCP_TRANSPORT", "stdio"),
             host=os.getenv("FASTMCP_HOST", "127.0.0.1"),
             port=int(os.getenv("FASTMCP_PORT", "9000")),
