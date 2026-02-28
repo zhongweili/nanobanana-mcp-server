@@ -33,17 +33,29 @@ class GeminiClient:
     def client(self) -> genai.Client:
         """Lazy initialization of Gemini client."""
         if self._client is None:
+            # Build http_options for custom base URL if configured
+            http_options = None
+            if self.config.gemini_base_url:
+                http_options = {"base_url": self.config.gemini_base_url}
+                self.logger.info(f"Using custom base URL: {self.config.gemini_base_url}")
+
             if self.config.auth_method == AuthMethod.API_KEY:
                 if not self.config.gemini_api_key:
                     raise AuthenticationError("API key is required for API_KEY auth method")
-                self._client = genai.Client(api_key=self.config.gemini_api_key)
+                client_kwargs = {"api_key": self.config.gemini_api_key}
+                if http_options:
+                    client_kwargs["http_options"] = http_options
+                self._client = genai.Client(**client_kwargs)
                 self._log_auth_method("API Key (Developer API)")
             else:  # VERTEX_AI
-                self._client = genai.Client(
-                    vertexai=True,
-                    project=self.config.gcp_project_id,
-                    location=self.config.gcp_region,
-                )
+                client_kwargs = {
+                    "vertexai": True,
+                    "project": self.config.gcp_project_id,
+                    "location": self.config.gcp_region,
+                }
+                if http_options:
+                    client_kwargs["http_options"] = http_options
+                self._client = genai.Client(**client_kwargs)
                 self._log_auth_method(f"ADC (Vertex AI - {self.config.gcp_region})")
         return self._client
 

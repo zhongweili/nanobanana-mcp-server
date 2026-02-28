@@ -454,6 +454,7 @@ NANOBANANA_MODEL=auto  # Options: flash, nb2, pro, auto (default: auto → nb2)
 
 # Optional
 IMAGE_OUTPUT_DIR=/path/to/image/directory  # Default: ~/nanobanana-images
+GEMINI_BASE_URL=https://custom-api.example.com  # Custom API endpoint (for proxies/gateways)
 LOG_LEVEL=INFO                             # DEBUG, INFO, WARNING, ERROR
 LOG_FORMAT=standard                        # standard, json, detailed
 ```
