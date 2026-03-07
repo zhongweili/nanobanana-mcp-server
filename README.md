@@ -184,6 +184,29 @@ Add to Cursor's MCP configuration:
 }
 ```
 
+### OpenAI Codex
+
+Add to `~/.codex/config.toml` (global) or `.codex/config.toml` (project-scoped):
+
+```toml
+[mcp_servers.nanobanana]
+command = "uvx"
+args = ["nanobanana-mcp-server@latest"]
+
+[mcp_servers.nanobanana.env]
+GEMINI_API_KEY = "your-gemini-api-key-here"
+```
+
+Or add via the CLI:
+
+```bash
+codex mcp add
+```
+
+Codex supports both the CLI and VSCode extension using the same `config.toml`. Once added, Codex can call `generate_image`, `edit_image`, and `upload_file` tools directly in your coding sessions.
+
+> **Note**: The Codex config file is shared by the CLI and the IDE extension. A TOML syntax error will break both simultaneously, so validate your edits carefully.
+
 ### Continue.dev (VS Code/JetBrains)
 
 Add to your `config.json`:
