@@ -287,12 +287,36 @@ class TestEnhancedImageServiceOutputPath:
         sig = inspect.signature(EnhancedImageService.generate_images)
         assert "output_path" in sig.parameters
 
+    def test_edit_image_by_file_id_accepts_output_path(self):
+        """Verify edit_image_by_file_id accepts output_path parameter."""
+        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
+        import inspect
+
+        sig = inspect.signature(EnhancedImageService.edit_image_by_file_id)
+        assert "output_path" in sig.parameters
+
+    def test_edit_image_by_path_accepts_output_path(self):
+        """Verify edit_image_by_path accepts output_path parameter."""
+        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
+        import inspect
+
+        sig = inspect.signature(EnhancedImageService.edit_image_by_path)
+        assert "output_path" in sig.parameters
+
     def test_process_generated_image_accepts_output_path(self):
         """Verify _process_generated_image accepts output_path parameter."""
         from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
         import inspect
 
         sig = inspect.signature(EnhancedImageService._process_generated_image)
+        assert "output_path" in sig.parameters
+
+    def test_process_edited_image_accepts_output_path(self):
+        """Verify _process_edited_image accepts output_path parameter."""
+        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
+        import inspect
+
+        sig = inspect.signature(EnhancedImageService._process_edited_image)
         assert "output_path" in sig.parameters
 
 
