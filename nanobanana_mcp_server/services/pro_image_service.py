@@ -33,6 +33,11 @@ class ProImageService:
         self.config = config
         self.storage_service = storage_service
         self.logger = logging.getLogger(__name__)
+        self._tier_label = (
+            "nb2"
+            if config.model_name.strip().lower() == "gemini-3.1-flash-image-preview"
+            else "pro"
+        )
 
     def generate_images(
         self,
@@ -161,13 +166,19 @@ class ProImageService:
                         # Pro metadata
                         metadata = {
                             "model": self.config.model_name,
-                            "model_tier": "pro",
+                            "model_tier": self._tier_label,
                             "response_index": i + 1,
                             "image_index": j + 1,
                             "resolution": resolution,
                             "aspect_ratio": aspect_ratio,
-                            "thinking_level": thinking_level.value,
-                            "media_resolution": media_resolution.value,
+                            "thinking_level": (
+                                thinking_level.value if self.config.supports_thinking else None
+                            ),
+                            "media_resolution": (
+                                media_resolution.value
+                                if self.config.supports_media_resolution
+                                else None
+                            ),
                             "grounding_enabled": enable_grounding,
                             "mime_type": f"image/{self.config.default_image_format}",
                             "synthid_watermark": True,
@@ -306,6 +317,189 @@ class ProImageService:
 
             return all_images, all_metadata
 
+    def edit_images(
+        self,
+        instruction: str,
+        *,
+        base_image_b64: str | None = None,
+        mime_type: str = "image/png",
+        file_data_part: dict[str, Any] | None = None,
+        output_path: str | None = None,
+        thinking_level: ThinkingLevel | None = None,
+        media_resolution: MediaResolution | None = None,
+        use_storage: bool = True,
+    ) -> tuple[list[MCPImage], list[dict[str, Any]]]:
+        """
+        Edit an image and return thumbnails + per-image metadata.
+
+        Input can be provided as either:
+        - Inline image bytes (base_image_b64 + mime_type)
+        - Files API reference (file_data_part = {file_data:{mime_type, uri}})
+        """
+        if thinking_level is None:
+            thinking_level = self.config.default_thinking_level
+        if media_resolution is None:
+            media_resolution = self.config.default_media_resolution
+
+        with ProgressContext(
+            "pro_image_editing",
+            f"Editing image with {self.config.model_name}...",
+            {"instruction": instruction[:100]},
+        ) as progress:
+            progress.update(10, "Configuring model editing parameters...")
+
+            # Validate image mime type when available
+            source_mime_type = mime_type
+            if file_data_part:
+                source_mime_type = (
+                    (file_data_part.get("file_data") or {}).get("mime_type") or source_mime_type
+                )
+            validate_image_format(source_mime_type)
+
+            progress.update(20, "Preparing edit request...")
+
+            # Enhanced instruction for higher quality edits
+            enhanced_instruction = (
+                f"{instruction}\n\n"
+                "Maintain the original image's quality and style. "
+                "Make precise, high-quality edits."
+            )
+
+            # Build contents: prefer file_data when available to avoid base64 transfer.
+            if file_data_part:
+                contents = [file_data_part, enhanced_instruction]
+            else:
+                if not base_image_b64:
+                    raise ImageProcessingError(
+                        "Missing base_image_b64: provide base_image_b64 or file_data_part"
+                    )
+                image_parts = self.gemini_client.create_image_parts(
+                    [base_image_b64], [source_mime_type]
+                )
+                contents = [*image_parts, enhanced_instruction]
+
+            progress.update(40, "Sending edit request to Gemini API...")
+
+            gen_config: dict[str, Any] = {}
+            if self.config.supports_thinking:
+                gen_config["thinking_level"] = thinking_level.value
+            if self.config.supports_media_resolution:
+                gen_config["media_resolution"] = media_resolution.value
+
+            response = self.gemini_client.generate_content(contents, config=gen_config)
+            image_bytes_list = self.gemini_client.extract_images(response)
+
+            progress.update(70, "Processing edited image(s)...")
+
+            mcp_images: list[MCPImage] = []
+            all_metadata: list[dict[str, Any]] = []
+
+            for i, image_bytes in enumerate(image_bytes_list):
+                edit_index = i + 1
+
+                metadata: dict[str, Any] = {
+                    "model": self.config.model_name,
+                    "model_tier": self._tier_label,
+                    "instruction": instruction,
+                    "thinking_level": (
+                        thinking_level.value if self.config.supports_thinking else None
+                    ),
+                    "media_resolution": (
+                        media_resolution.value
+                        if self.config.supports_media_resolution
+                        else None
+                    ),
+                    "source_mime_type": source_mime_type,
+                    "result_mime_type": f"image/{self.config.default_image_format}",
+                    "synthid_watermark": True,
+                    "edit_index": edit_index,
+                }
+
+                if output_path:
+                    timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
+                    image_hash = hashlib.md5(image_bytes, usedforsecurity=False).hexdigest()[:8]
+                    default_filename = (
+                        f"edit_{self._tier_label}_{timestamp}_{edit_index}_{image_hash}.{self.config.default_image_format}"
+                    )
+
+                    full_path = resolve_output_path(
+                        output_path=output_path,
+                        default_dir=os.path.dirname(output_path) or ".",
+                        default_filename=default_filename,
+                        image_index=edit_index,
+                    )
+
+                    os.makedirs(os.path.dirname(full_path) or ".", exist_ok=True)
+                    with open(full_path, "wb") as f:
+                        f.write(image_bytes)
+
+                    with PILImage.open(BytesIO(image_bytes)) as img:
+                        width, height = img.size
+
+                    path_stem, _ = os.path.splitext(full_path)
+                    thumb_path = f"{path_stem}_thumb.jpeg"
+                    try:
+                        create_thumbnail(full_path, thumb_path, size=256)
+                        with open(thumb_path, "rb") as f:
+                            thumb_data = f.read()
+                        mcp_images.append(MCPImage(data=thumb_data, format="jpeg"))
+                    except ImageProcessingError as e:
+                        self.logger.warning(f"Thumbnail creation failed, using full image: {e}")
+                        thumb_path = None
+                        mcp_images.append(
+                            MCPImage(data=image_bytes, format=self.config.default_image_format)
+                        )
+
+                    metadata.update(
+                        {
+                            "full_path": full_path,
+                            "thumb_path": thumb_path,
+                            "size_bytes": len(image_bytes),
+                            "width": width,
+                            "height": height,
+                            "is_stored": True,
+                            "output_path_used": True,
+                        }
+                    )
+
+                elif use_storage and self.storage_service:
+                    stored_info = self.storage_service.store_image(
+                        image_bytes, f"image/{self.config.default_image_format}", metadata
+                    )
+
+                    thumbnail_b64 = self.storage_service.get_thumbnail_base64(stored_info.id)
+                    if thumbnail_b64:
+                        thumbnail_bytes = base64.b64decode(thumbnail_b64)
+                        mcp_images.append(MCPImage(data=thumbnail_bytes, format="jpeg"))
+                    else:
+                        mcp_images.append(
+                            MCPImage(data=image_bytes, format=self.config.default_image_format)
+                        )
+
+                    metadata.update(
+                        {
+                            "storage_id": stored_info.id,
+                            "full_image_uri": f"file://images/{stored_info.id}",
+                            "full_path": stored_info.full_path,
+                            "thumbnail_uri": f"file://images/{stored_info.id}/thumbnail",
+                            "size_bytes": stored_info.size_bytes,
+                            "thumbnail_size_bytes": stored_info.thumbnail_size_bytes,
+                            "width": stored_info.width,
+                            "height": stored_info.height,
+                            "expires_at": stored_info.expires_at,
+                            "is_stored": True,
+                        }
+                    )
+                else:
+                    mcp_images.append(
+                        MCPImage(data=image_bytes, format=self.config.default_image_format)
+                    )
+
+                all_metadata.append(metadata)
+
+            progress.update(100, f"Edited image(s), returned {len(mcp_images)} result(s)")
+            return mcp_images, all_metadata
+
     def edit_image(
         self,
         instruction: str,
@@ -334,102 +528,15 @@ class ProImageService:
         Returns:
             Tuple of (edited_images_or_resource_links, count)
         """
-        # Apply defaults
-        if thinking_level is None:
-            thinking_level = self.config.default_thinking_level
-        if media_resolution is None:
-            media_resolution = self.config.default_media_resolution
-
-        with ProgressContext(
-            "pro_image_editing",
-            "Editing image with Gemini 3 Pro...",
-            {"instruction": instruction[:100]},
-        ) as progress:
-            try:
-                progress.update(10, "Configuring Pro editing parameters...")
-
-                self.logger.info(
-                    f"Pro edit: instruction='{instruction[:50]}...', "
-                    f"thinking={thinking_level.value}"
-                )
-
-                # Validate image
-                validate_image_format(mime_type)
-
-                progress.update(20, "Preparing edit request...")
-
-                # Enhanced instruction for Pro model
-                enhanced_instruction = (
-                    f"{instruction}\n\n"
-                    "Maintain the original image's quality and style. "
-                    "Make precise, high-quality edits."
-                )
-
-                # Create parts
-                image_parts = self.gemini_client.create_image_parts([base_image_b64], [mime_type])
-                contents = [*image_parts, enhanced_instruction]
-
-                progress.update(40, "Sending edit request to Gemini 3 Pro API...")
-
-                # Generate edited image with Pro config
-                gen_config = {
-                    "thinking_level": thinking_level.value,
-                    "media_resolution": media_resolution.value,
-                }
-
-                response = self.gemini_client.generate_content(contents, config=gen_config)
-                image_bytes_list = self.gemini_client.extract_images(response)
-
-                progress.update(70, "Processing edited images...")
-
-                mcp_images = []
-                for i, image_bytes in enumerate(image_bytes_list):
-                    metadata = {
-                        "model": self.config.model_name,
-                        "model_tier": "pro",
-                        "instruction": instruction,
-                        "thinking_level": thinking_level.value,
-                        "media_resolution": media_resolution.value,
-                        "source_mime_type": mime_type,
-                        "result_mime_type": f"image/{self.config.default_image_format}",
-                        "synthid_watermark": True,
-                        "edit_index": i + 1,
-                    }
-
-                    if use_storage and self.storage_service:
-                        stored_info = self.storage_service.store_image(
-                            image_bytes, f"image/{self.config.default_image_format}", metadata
-                        )
-
-                        thumbnail_b64 = self.storage_service.get_thumbnail_base64(stored_info.id)
-                        if thumbnail_b64:
-                            thumbnail_bytes = base64.b64decode(thumbnail_b64)
-                            thumbnail_image = MCPImage(data=thumbnail_bytes, format="jpeg")
-                            mcp_images.append(thumbnail_image)
-
-                        self.logger.info(
-                            f"Edited image {i + 1} with Pro - stored as {stored_info.id} "
-                            f"({stored_info.size_bytes} bytes)"
-                        )
-                    else:
-                        mcp_image = MCPImage(
-                            data=image_bytes, format=self.config.default_image_format
-                        )
-                        mcp_images.append(mcp_image)
-
-                        self.logger.info(
-                            f"Edited image {i + 1} with Pro (size: {len(image_bytes)} bytes)"
-                        )
-
-                progress.update(
-                    100,
-                    f"Successfully edited image with Pro, generated {len(mcp_images)} result(s)",
-                )
-                return mcp_images, len(mcp_images)
-
-            except Exception as e:
-                self.logger.error(f"Failed to edit image with Pro: {e}")
-                raise
+        edited_images, _metadata = self.edit_images(
+            instruction,
+            base_image_b64=base_image_b64,
+            mime_type=mime_type,
+            thinking_level=thinking_level,
+            media_resolution=media_resolution,
+            use_storage=use_storage,
+        )
+        return edited_images, len(edited_images)
 
     def _enhance_prompt_for_pro(
         self, prompt: str, resolution: str, negative_prompt: str | None

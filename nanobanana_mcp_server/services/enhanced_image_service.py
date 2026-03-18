@@ -170,7 +170,7 @@ class EnhancedImageService:
             raise
 
     def edit_image_by_file_id(
-        self, file_id: str, edit_prompt: str
+        self, file_id: str, edit_prompt: str, output_path: Optional[str] = None
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Edit image by file_id following workflows.md pattern.
@@ -190,6 +190,9 @@ class EnhancedImageService:
         Args:
             file_id: Files API file ID to edit
             edit_prompt: Natural language editing instruction
+            output_path: Optional output path. If a file path with extension,
+                saves directly to that path. If a directory path, uses default
+                filename in that directory. If None, uses the configured out_dir.
 
         Returns:
             Tuple of (thumbnail_images, metadata_list)
@@ -219,7 +222,11 @@ class EnhancedImageService:
             for i, image_bytes in enumerate(edited_images):
                 # Steps 6-9: Process edited image through full workflow
                 thumbnail_image, metadata = self._process_edited_image(
-                    image_bytes, edit_prompt, file_id, i + 1
+                    image_bytes,
+                    instruction=edit_prompt,
+                    parent_file_id=file_id,
+                    edit_index=i + 1,
+                    output_path=output_path,
                 )
 
                 all_thumbnail_images.append(thumbnail_image)
@@ -235,7 +242,7 @@ class EnhancedImageService:
             raise
 
     def edit_image_by_path(
-        self, instruction: str, file_path: str
+        self, instruction: str, file_path: str, output_path: Optional[str] = None
     ) -> Tuple[List[MCPImage], List[Dict[str, Any]]]:
         """
         Edit image from local file path following workflows.md pattern for path-based editing.
@@ -245,6 +252,9 @@ class EnhancedImageService:
         Args:
             instruction: Natural language editing instruction
             file_path: Local path to the source image file
+            output_path: Optional output path. If a file path with extension,
+                saves directly to that path. If a directory path, uses default
+                filename in that directory. If None, uses the configured out_dir.
 
         Returns:
             Tuple of (thumbnail_images, metadata_list)
@@ -292,7 +302,11 @@ class EnhancedImageService:
             for i, edited_image_bytes in enumerate(edited_images):
                 try:
                     thumbnail_image, metadata = self._process_edited_image(
-                        edited_image_bytes, instruction, parent_file_id=None, edit_index=i + 1
+                        edited_image_bytes,
+                        instruction=instruction,
+                        parent_file_id=None,
+                        edit_index=i + 1,
+                        output_path=output_path,
                     )
 
                     all_thumbnail_images.append(thumbnail_image)
@@ -437,7 +451,12 @@ class EnhancedImageService:
         return thumbnail_image, metadata
 
     def _process_edited_image(
-        self, image_bytes: bytes, instruction: str, parent_file_id: Optional[str], edit_index: int
+        self,
+        image_bytes: bytes,
+        instruction: str,
+        parent_file_id: Optional[str],
+        edit_index: int,
+        output_path: Optional[str] = None,
     ) -> Tuple[MCPImage, Dict[str, Any]]:
         """
         Process an edited image through the complete workflow.
@@ -447,19 +466,39 @@ class EnhancedImageService:
         # Step 6: M->>FS: save new full-res image + new thumbnail
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         image_hash = hashlib.md5(image_bytes).hexdigest()[:8]
-        filename = f"edit_{timestamp}_{edit_index}_{image_hash}"
+        default_filename = (
+            f"edit_{timestamp}_{edit_index}_{image_hash}.{self.config.default_image_format}"
+        )
 
-        full_path = os.path.join(self.out_dir, f"{filename}.{self.config.default_image_format}")
-        with open(full_path, "wb") as f:
-            f.write(image_bytes)
+        full_path = resolve_output_path(
+            output_path=output_path,
+            default_dir=self.out_dir,
+            default_filename=default_filename,
+            image_index=edit_index,
+        )
+
+        # Ensure output directory exists
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+
+        # Write image file atomically using temporary file
+        temp_path = f"{full_path}{TEMP_FILE_SUFFIX}"
+        try:
+            with open(temp_path, "wb") as f:
+                f.write(image_bytes)
+            os.rename(temp_path, full_path)
+        except Exception as e:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise ValueError(f"Failed to save edited image: {e}")
 
         # Get image dimensions
         with PILImage.open(full_path) as img:
             width, height = img.size
 
-        # Create 256px thumbnail (JPEG)
-        thumb_path = os.path.join(self.out_dir, f"{filename}_thumb.jpeg")
-        create_thumbnail(full_path, thumb_path, size=256)
+        # Create 256px thumbnail (JPEG) alongside the image
+        path_stem, _ = os.path.splitext(full_path)
+        thumb_path = f"{path_stem}_thumb.jpeg"
+        create_thumbnail(full_path, thumb_path, size=THUMBNAIL_SIZE)
 
         # Step 7-8: M->>F: files.upload -> F-->>M: { name:new_file_id, uri:new_file_uri }
         try:
@@ -508,6 +547,7 @@ class EnhancedImageService:
             "height": height,
             "size_bytes": len(image_bytes),
             "files_api": {"name": new_file_id, "uri": new_file_uri} if new_file_id else None,
+            "output_path_used": bool(output_path),
         }
 
         return thumbnail_image, metadata

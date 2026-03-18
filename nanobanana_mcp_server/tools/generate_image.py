@@ -231,23 +231,88 @@ def register_generate_image_tool(server: FastMCP):
                         "Edit mode with file_id supports only additional input images, not multiple primary inputs"
                     )
 
-            # Get enhanced image service (would be injected in real implementation)
+            # Get enhanced image service (workflows.md + Files API + DB)
             enhanced_image_service = _get_enhanced_image_service()
 
             # Execute based on detected mode
-            if detected_mode == "edit" and file_id:
-                # Edit by file_id following workflows.md sequence
-                logger.info(f"Edit mode: using file_id {file_id}")
-                thumbnail_images, metadata = enhanced_image_service.edit_image_by_file_id(
-                    file_id=file_id, edit_prompt=prompt
-                )
+            if detected_mode == "edit":
+                if selected_tier == ModelTier.FLASH:
+                    # Flash edit path uses EnhancedImageService (workflows.md + Files API)
+                    if file_id:
+                        logger.info(
+                            f"Edit mode (FLASH): using file_id {file_id}, output_path={output_path}"
+                        )
+                        thumbnail_images, metadata = enhanced_image_service.edit_image_by_file_id(
+                            file_id=file_id, edit_prompt=prompt, output_path=output_path
+                        )
+                    else:
+                        # Edit by file path
+                        logger.info(
+                            f"Edit mode (FLASH): using file path {input_image_paths[0]}, output_path={output_path}"
+                        )
+                        thumbnail_images, metadata = enhanced_image_service.edit_image_by_path(
+                            instruction=prompt,
+                            file_path=input_image_paths[0],
+                            output_path=output_path,
+                        )
+                else:
+                    # PRO / NB2 edit path uses ProImageService (selected_service)
+                    # For file_id, prefer file_data parts to avoid downloading / base64.
+                    if file_id:
+                        from ..services import get_files_api_service
 
-            elif detected_mode == "edit" and input_image_paths and len(input_image_paths) == 1:
-                # Edit by file path
-                logger.info(f"Edit mode: using file path {input_image_paths[0]}")
-                thumbnail_images, metadata = enhanced_image_service.edit_image_by_path(
-                    instruction=prompt, file_path=input_image_paths[0]
-                )
+                        files_api_service = get_files_api_service()
+                        file_data_part = files_api_service.create_file_data_part(file_id)
+                        logger.info(
+                            f"Edit mode ({selected_tier.value.upper()}): using file_id {file_id}, output_path={output_path}"
+                        )
+                        thumbnail_images, metadata = selected_service.edit_images(
+                            instruction=prompt,
+                            file_data_part=file_data_part,
+                            output_path=output_path,
+                            thinking_level=(
+                                ThinkingLevel(thinking_level)
+                                if (thinking_level and selected_tier == ModelTier.PRO)
+                                else None
+                            ),
+                            use_storage=True,
+                        )
+                        for meta in metadata:
+                            if isinstance(meta, dict):
+                                meta.setdefault("parent_file_id", file_id)
+                    else:
+                        # Edit by file path (read bytes locally)
+                        src_path = input_image_paths[0]
+                        logger.info(
+                            f"Edit mode ({selected_tier.value.upper()}): using file path {src_path}, output_path={output_path}"
+                        )
+                        try:
+                            with open(src_path, "rb") as f:
+                                image_bytes = f.read()
+                            mime_type, _ = mimetypes.guess_type(src_path)
+                            if not mime_type or not mime_type.startswith("image/"):
+                                mime_type = "image/png"
+                            base64_data = base64.b64encode(image_bytes).decode("utf-8")
+                        except Exception as e:
+                            raise ValidationError(
+                                f"Failed to load input image {src_path}: {e}"
+                            ) from e
+
+                        thumbnail_images, metadata = selected_service.edit_images(
+                            instruction=prompt,
+                            base_image_b64=base64_data,
+                            mime_type=mime_type,
+                            output_path=output_path,
+                            thinking_level=(
+                                ThinkingLevel(thinking_level)
+                                if (thinking_level and selected_tier == ModelTier.PRO)
+                                else None
+                            ),
+                            use_storage=True,
+                        )
+                        for meta in metadata:
+                            if isinstance(meta, dict):
+                                meta.setdefault("source_path", src_path)
 
             else:
                 # Generation mode (with optional input images for conditioning)
