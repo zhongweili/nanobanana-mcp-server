@@ -367,7 +367,7 @@ class EnhancedImageService:
         )
 
         # Ensure output directory exists
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        os.makedirs(os.path.dirname(full_path) or ".", exist_ok=True)
 
         # Write image file atomically using temporary file
         temp_path = f"{full_path}{TEMP_FILE_SUFFIX}"
@@ -478,7 +478,7 @@ class EnhancedImageService:
         )
 
         # Ensure output directory exists
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        os.makedirs(os.path.dirname(full_path) or ".", exist_ok=True)
 
         # Write image file atomically using temporary file
         temp_path = f"{full_path}{TEMP_FILE_SUFFIX}"
