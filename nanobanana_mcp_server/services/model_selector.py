@@ -192,9 +192,9 @@ class ModelSelector:
                 "best_for": "Professional assets, production-ready images",
                 "emoji": "🏆",
             }
-        elif tier == ModelTier.NB2:
+        else:
             return {
-                "tier": "nb2",
+                "tier": "flash",
                 "name": "Gemini 3.1 Flash Image",
                 "model_id": "gemini-3.1-flash-image-preview",
                 "max_resolution": "4K (3840px)",
@@ -207,14 +207,4 @@ class ModelSelector:
                 ],
                 "best_for": "Production images at Flash speed",
                 "emoji": "🍌",
-            }
-        else:  # FLASH
-            return {
-                "tier": "flash",
-                "name": "Gemini 2.5 Flash Image",
-                "model_id": "gemini-2.5-flash-image",
-                "max_resolution": "1024px",
-                "features": ["Very fast generation", "Low latency", "High-volume support"],
-                "best_for": "Rapid prototyping, quick iterations",
-                "emoji": "⚡",
             }
