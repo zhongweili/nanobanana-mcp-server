@@ -134,9 +134,9 @@ class BaseModelConfig:
 
 @dataclass
 class FlashImageConfig(BaseModelConfig):
-    """Gemini 2.5 Flash Image configuration (speed-optimized)."""
+    """Gemini 2.0 Flash configuration (speed-optimized)."""
 
-    model_name: str = "gemini-2.5-flash-image"
+    model_name: str = "gemini-2.0-flash"
     max_resolution: int = 1024
     supports_thinking: bool = False
     supports_grounding: bool = False
@@ -145,9 +145,9 @@ class FlashImageConfig(BaseModelConfig):
 
 @dataclass
 class ProImageConfig(BaseModelConfig):
-    """Gemini 3 Pro Image configuration (quality-optimized)."""
+    """Gemini 1.5 Pro configuration (quality-optimized)."""
 
-    model_name: str = "gemini-3-pro-image-preview"
+    model_name: str = "gemini-1.5-pro"
     max_resolution: int = 3840  # 4K
     default_resolution: str = "high"  # low/medium/high
     default_thinking_level: ThinkingLevel = ThinkingLevel.HIGH
@@ -161,9 +161,9 @@ class ProImageConfig(BaseModelConfig):
 
 @dataclass
 class NanoBanana2Config(ProImageConfig):
-    """Gemini 3.1 Flash Image configuration (Flash speed + Pro quality)."""
+    """Gemini 2.0 Flash configuration (Flash speed + Pro quality)."""
 
-    model_name: str = "gemini-3.1-flash-image-preview"
+    model_name: str = "gemini-2.0-flash"
     request_timeout: int = 60  # Flash-speed model
     supports_thinking: bool = False  # Not supported by this model
 
@@ -223,7 +223,8 @@ class ModelSelectionConfig:
 class GeminiConfig:
     """Legacy Gemini API configuration (backward compatibility)."""
 
-    model_name: str = "gemini-2.5-flash-image"
+    model_name: str = "gemini-2.0-flash"
+
     max_images_per_request: int = 4
     max_inline_image_size: int = 20 * 1024 * 1024  # 20MB
     default_image_format: str = "png"

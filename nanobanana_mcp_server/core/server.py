@@ -37,14 +37,17 @@ class NanoBananaMCP:
     def _register_tools(self):
         """Register all tools with the server."""
         from ..tools.generate_image import register_generate_image_tool
+        from ..tools.generate_svg import register_generate_svg_tool
         from ..tools.upload_file import register_upload_file_tool
         from ..tools.output_stats import register_output_stats_tool
         from ..tools.maintenance import register_maintenance_tool
 
         register_generate_image_tool(self.server)
+        register_generate_svg_tool(self.server)
         register_upload_file_tool(self.server)
         register_output_stats_tool(self.server)
         register_maintenance_tool(self.server)
+
 
     def _register_resources(self):
         """Register all resources with the server."""
