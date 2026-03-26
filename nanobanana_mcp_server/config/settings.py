@@ -136,7 +136,7 @@ class BaseModelConfig:
 class FlashImageConfig(BaseModelConfig):
     """Gemini 2.0 Flash configuration (speed-optimized)."""
 
-    model_name: str = "gemini-2.0-flash"
+    model_name: str = "imagen-4.0-fast-generate-001"
     max_resolution: int = 1024
     supports_thinking: bool = False
     supports_grounding: bool = False
@@ -147,7 +147,7 @@ class FlashImageConfig(BaseModelConfig):
 class ProImageConfig(BaseModelConfig):
     """Gemini 1.5 Pro configuration (quality-optimized)."""
 
-    model_name: str = "gemini-1.5-pro"
+    model_name: str = "imagen-4.0-generate-001"
     max_resolution: int = 3840  # 4K
     default_resolution: str = "high"  # low/medium/high
     default_thinking_level: ThinkingLevel = ThinkingLevel.HIGH
@@ -163,7 +163,7 @@ class ProImageConfig(BaseModelConfig):
 class NanoBanana2Config(ProImageConfig):
     """Gemini 2.0 Flash configuration (Flash speed + Pro quality)."""
 
-    model_name: str = "gemini-2.0-flash"
+    model_name: str = "gemini-3.1-flash-image-preview"
     request_timeout: int = 60  # Flash-speed model
     supports_thinking: bool = False  # Not supported by this model
 

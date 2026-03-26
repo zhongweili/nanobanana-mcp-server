@@ -2,12 +2,7 @@
   "mcpServers": {
     "nanobanana-mcp-server": {
       "command": "uv",
-      "args": [
-        "run",
-        "python",
-        "-m",
-        "nanobanana_mcp_server.server"
-      ],
+      "args": ["run", "python", "-m", "nanobanana_mcp_server.server"],
       "cwd": ".",
       "env": {
         "LOG_LEVEL": "INFO",

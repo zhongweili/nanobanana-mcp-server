@@ -155,7 +155,7 @@ class GeminiClient:
 
                 # Build generation config - use TEXT,IMAGE for Pro model compatibility
                 config_kwargs = {
-                    "response_modalities": ["TEXT", "IMAGE"],
+                    "response_modalities": ["IMAGE"],
                 }
 
                 # Build ImageConfig with aspect_ratio and image_size

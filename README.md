@@ -1,13 +1,17 @@
 # Nano Banana MCP Server 🍌
 
-A production-ready **Model Context Protocol (MCP)** server that provides AI-powered image generation capabilities through Google's **Gemini** models with intelligent model selection.
+A production-ready **Model Context Protocol (MCP)** server that provides
+AI-powered image generation capabilities through Google's **Gemini** models with
+intelligent model selection.
 
 ## ⭐ NEW: Nano Banana 2 — Gemini 3.1 Flash Image! 🍌🚀
 
-**Nano Banana 2** (`gemini-3.1-flash-image-preview`) is now the **default model** — delivering Pro-level quality at Flash speed:
+**Nano Banana 2** (`gemini-3.1-flash-image-preview`) is now the **default
+model** — delivering Pro-level quality at Flash speed:
 
 - 🍌 **Flash Speed + 4K Quality**: Up to 3840px at Gemini 2.5 Flash latency
-- 🌐 **Google Search Grounding**: Real-world knowledge for factually accurate images
+- 🌐 **Google Search Grounding**: Real-world knowledge for factually accurate
+  images
 - 🎯 **Subject Consistency**: Up to 5 characters and 14 objects per scene
 - ✍️ **Precision Text Rendering**: Crystal-clear text placement in images
 - 🏆 **Gemini 3 Pro Image** still available for maximum reasoning depth
@@ -18,15 +22,23 @@ A production-ready **Model Context Protocol (MCP)** server that provides AI-powe
 
 ## ✨ Features
 
-- 🎨 **Multi-Model AI Image Generation**: Three Gemini models with intelligent automatic selection
-- 🍌 **Gemini 3.1 Flash Image (NB2)**: Default model — 4K resolution at Flash speed with grounding
-- 🏆 **Gemini 3 Pro Image**: Maximum reasoning depth for the most complex compositions
-- ⚡ **Gemini 2.5 Flash Image**: Legacy Flash model for high-volume rapid prototyping
-- 🤖 **Smart Model Selection**: Automatically routes to NB2 or Pro based on your prompt
-- 📐 **Aspect Ratio Control** ⭐ NEW: Specify output dimensions (1:1, 16:9, 9:16, 21:9, and more)
-- 📋 **Smart Templates**: Pre-built prompt templates for photography, design, and editing
+- 🎨 **Multi-Model AI Image Generation**: Three Gemini models with intelligent
+  automatic selection
+- 🍌 **Gemini 3.1 Flash Image (NB2)**: Default model — 4K resolution at Flash
+  speed with grounding
+- 🏆 **Gemini 3 Pro Image**: Maximum reasoning depth for the most complex
+  compositions
+- ⚡ **Gemini 2.5 Flash Image**: Legacy Flash model for high-volume rapid
+  prototyping
+- 🤖 **Smart Model Selection**: Automatically routes to NB2 or Pro based on your
+  prompt
+- 📐 **Aspect Ratio Control** ⭐ NEW: Specify output dimensions (1:1, 16:9,
+  9:16, 21:9, and more)
+- 📋 **Smart Templates**: Pre-built prompt templates for photography, design,
+  and editing
 - 📁 **File Management**: Upload and manage files via Gemini Files API
-- 🔍 **Resource Discovery**: Browse templates and file metadata through MCP resources
+- 🔍 **Resource Discovery**: Browse templates and file metadata through MCP
+  resources
 - 🛡️ **Production Ready**: Comprehensive error handling, logging, and validation
 - ⚡ **High Performance**: Optimized architecture with intelligent caching
 
@@ -34,13 +46,15 @@ A production-ready **Model Context Protocol (MCP)** server that provides AI-powe
 
 ### Prerequisites
 
-1. **Google Gemini API Key** - [Get one free here](https://makersuite.google.com/app/apikey)
+1. **Google Gemini API Key** -
+   [Get one free here](https://makersuite.google.com/app/apikey)
 2. **Python 3.11+** (for development only)
 
 ### Installation
 
-Option 1: From MCP Registry (Recommended)
-This server is available in the [Model Context Protocol Registry](https://registry.modelcontextprotocol.io/?q=nanobanana). Search for "nanobanana" or use the MCP name below with your MCP client.
+Option 1: From MCP Registry (Recommended) This server is available in the
+[Model Context Protocol Registry](https://registry.modelcontextprotocol.io/?q=nanobanana).
+Search for "nanobanana" or use the MCP name below with your MCP client.
 
 mcp-name: io.github.zhongweili/nanobanana-mcp-server
 
@@ -62,9 +76,12 @@ pip install nanobanana-mcp-server
 
 Nano Banana supports two authentication methods via `NANOBANANA_AUTH_METHOD`:
 
-1. **API Key** (`api_key`): Uses `GEMINI_API_KEY`. Best for local development and simple deployments.
-2. **Vertex AI ADC** (`vertex_ai`): Uses Google Cloud Application Default Credentials. Best for production on Google Cloud (Cloud Run, GKE, GCE).
-3. **Automatic** (`auto`): Defaults to API Key if present, otherwise tries Vertex AI.
+1. **API Key** (`api_key`): Uses `GEMINI_API_KEY`. Best for local development
+   and simple deployments.
+2. **Vertex AI ADC** (`vertex_ai`): Uses Google Cloud Application Default
+   Credentials. Best for production on Google Cloud (Cloud Run, GKE, GCE).
+3. **Automatic** (`auto`): Defaults to API Key if present, otherwise tries
+   Vertex AI.
 
 #### 1. API Key Authentication (Default)
 
@@ -124,7 +141,8 @@ If you are running from source code, point to your local installation:
 
 #### Option 3: Using Vertex AI (ADC)
 
-To authenticate with Google Cloud Application Default Credentials (instead of an API Key):
+To authenticate with Google Cloud Application Default Credentials (instead of an
+API Key):
 
 ```json
 {
@@ -203,9 +221,13 @@ Or add via the CLI:
 codex mcp add
 ```
 
-Codex supports both the CLI and VSCode extension using the same `config.toml`. Once added, Codex can call `generate_image`, `edit_image`, and `upload_file` tools directly in your coding sessions.
+Codex supports both the CLI and VSCode extension using the same `config.toml`.
+Once added, Codex can call `generate_image`, `edit_image`, and `upload_file`
+tools directly in your coding sessions.
 
-> **Note**: The Codex config file is shared by the CLI and the IDE extension. A TOML syntax error will break both simultaneously, so validate your edits carefully.
+> **Note**: The Codex config file is shared by the CLI and the IDE extension. A
+> TOML syntax error will break both simultaneously, so validate your edits
+> carefully.
 
 ### Continue.dev (VS Code/JetBrains)
 
@@ -268,10 +290,12 @@ Nano Banana supports three Gemini models with intelligent automatic selection:
 - **Resolution**: Up to 4K (3840px)
 - **Speed**: ~2-4 seconds per image (Flash-class latency)
 - **Special Features**:
-  - 🌐 **Google Search Grounding**: Real-world knowledge for factually accurate images
+  - 🌐 **Google Search Grounding**: Real-world knowledge for factually accurate
+    images
   - 🎯 **Subject Consistency**: Up to 5 characters and 14 objects per scene
   - ✍️ **Precision Text Rendering**: Clear, well-placed text in images
-- **Best for**: Almost everything — production assets, marketing, photography, text overlays
+- **Best for**: Almost everything — production assets, marketing, photography,
+  text overlays
 - **model_tier**: `"nb2"` (or `"auto"` — NB2 is the auto default)
 
 ### 🏆 Pro Model — Nano Banana Pro (Gemini 3 Pro Image)
@@ -285,7 +309,8 @@ Nano Banana supports three Gemini models with intelligent automatic selection:
   - 🧠 **Advanced Reasoning**: Configurable thinking levels (LOW/HIGH)
   - 🌐 **Google Search Grounding**: Real-world knowledge integration
   - 📐 **Media Resolution Control**: Fine-tune vision processing detail
-- **Best for**: Complex narrative scenes, intricate compositions, maximum reasoning required
+- **Best for**: Complex narrative scenes, intricate compositions, maximum
+  reasoning required
 - **model_tier**: `"pro"`
 
 ### ⚡ Flash Model (Gemini 2.5 Flash Image)
@@ -299,7 +324,8 @@ Nano Banana supports three Gemini models with intelligent automatic selection:
 
 ### 🤖 Automatic Selection (Recommended)
 
-By default, the server uses **AUTO** mode which routes to **NB2** unless Pro's deeper reasoning is clearly needed:
+By default, the server uses **AUTO** mode which routes to **NB2** unless Pro's
+deeper reasoning is clearly needed:
 
 **Pro Model Selected When**:
 
@@ -394,7 +420,9 @@ generate_image(
 )
 ```
 
-**Note**: Aspect ratio works with both Flash and Pro models. For best results with specific aspect ratios at high resolution, use the Pro model with `resolution="4k"`.
+**Note**: Aspect ratio works with both Flash and Pro models. For best results
+with specific aspect ratios at high resolution, use the Pro model with
+`resolution="4k"`.
 
 ### 📁 Output Path Control ⭐ NEW!
 
@@ -429,8 +457,8 @@ generate_image(
 )
 ```
 
-**Multiple images (n > 1):**
-When generating multiple images with a file path, images are automatically numbered:
+**Multiple images (n > 1):** When generating multiple images with a file path,
+images are automatically numbered:
 
 - First image: `/path/to/image.png`
 - Second image: `/path/to/image_2.png`
@@ -489,7 +517,8 @@ LOG_FORMAT=standard                        # standard, json, detailed
 **"GEMINI_API_KEY not set"**
 
 - Add your API key to the MCP server configuration in your client
-- Get a free API key at [Google AI Studio](https://makersuite.google.com/app/apikey)
+- Get a free API key at
+  [Google AI Studio](https://makersuite.google.com/app/apikey)
 
 **"Server failed to start"**
 
@@ -526,5 +555,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🆘 Support
 
-- **Issues**: [GitHub Issues](https://github.com/zhongweili/nanobanana-mcp-server/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/zhongweili/nanobanana-mcp-server/discussions)
+- **Issues**:
+  [GitHub Issues](https://github.com/zhongweili/nanobanana-mcp-server/issues)
+- **Discussions**:
+  [GitHub Discussions](https://github.com/zhongweili/nanobanana-mcp-server/discussions)
