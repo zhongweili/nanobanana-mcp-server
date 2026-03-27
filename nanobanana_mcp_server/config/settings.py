@@ -165,7 +165,8 @@ class NanoBanana2Config(ProImageConfig):
 
     model_name: str = "gemini-3.1-flash-image-preview"
     request_timeout: int = 60  # Flash-speed model
-    supports_thinking: bool = False  # Not supported by this model
+    supports_thinking: bool = True  # Supports Minimal/High/Dynamic thinking
+    supports_extreme_aspect_ratios: bool = True  # 4:1, 1:4, 8:1, 1:8
 
 
 @dataclass
