@@ -50,7 +50,7 @@ selected = PRO if quality_score > speed_score else NB2
 
 **Key design:** Resolution and `enable_grounding` are intentionally NOT scoring inputs — NB2 supports both 4K and grounding natively, so they no longer signal "needs Pro".
 
-**NB2 reuses `ProImageService`** — `NanoBanana2Config` extends `ProImageConfig` with `supports_thinking=False` and model name `gemini-3.1-flash-image-preview`. `isinstance(config, ProImageConfig)` stays `True`, so `GeminiClient._filter_parameters()` works unchanged.
+**NB2 reuses `ProImageService`** — `NanoBanana2Config` extends `ProImageConfig` with `supports_thinking=True`, `supports_extreme_aspect_ratios=True`, and model name `gemini-3.1-flash-image-preview`. `isinstance(config, ProImageConfig)` stays `True`, so `GeminiClient._filter_parameters()` works unchanged.
 
 ## Authentication Strategy
 

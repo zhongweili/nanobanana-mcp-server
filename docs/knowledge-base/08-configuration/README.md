@@ -60,7 +60,7 @@ File: `nanobanana_mcp_server/config/settings.py`
 | `GeminiConfig` | Legacy Flash model settings |
 | `FlashImageConfig` | Flash model: timeouts, image limits |
 | `ProImageConfig` | Pro model: resolution, thinking level, grounding, media resolution |
-| `NanoBanana2Config` | NB2 model: extends `ProImageConfig`, overrides model name + timeout, `supports_thinking=False` |
+| `NanoBanana2Config` | NB2 model: extends `ProImageConfig`, overrides model name + timeout, `supports_thinking=True`, `supports_extreme_aspect_ratios=True` |
 | `ModelSelectionConfig` | Auto-selection: quality/speed keywords, default tier |
 
 **Loading priority:** env vars → `.env` file → dataclass defaults

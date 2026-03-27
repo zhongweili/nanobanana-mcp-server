@@ -11,6 +11,7 @@ from ..config.settings import (
     BaseModelConfig,
     FlashImageConfig,
     GeminiConfig,
+    NanoBanana2Config,
     ProImageConfig,
     ServerConfig,
 )
@@ -229,11 +230,17 @@ class GeminiClient:
             if param in config:
                 filtered[param] = config[param]
 
-        # Pro-specific parameters - NOTE: thinking_level is NOT supported by gemini-3-pro-image-preview
-        if isinstance(self.gemini_config, ProImageConfig):
+        # NB2-specific parameters
+        if isinstance(self.gemini_config, NanoBanana2Config):
+            if "thinking_level" in config:
+                filtered["thinking_config"] = gx.ThinkingConfig(
+                    thinking_level=gx.ThinkingLevel[config["thinking_level"].upper()]
+                )
+
+        # Pro-specific parameters - thinking_level is NOT supported by gemini-3-pro-image-preview
+        elif isinstance(self.gemini_config, ProImageConfig):
             # Resolution is handled via ImageConfig.image_size, not here
             # Grounding is controlled via prompt/system instructions
-            # thinking_level is NOT available for this model
             if "thinking_level" in config:
                 self.logger.info(
                     "Note: thinking_level is not supported by gemini-3-pro-image-preview, ignoring"

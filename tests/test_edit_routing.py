@@ -24,8 +24,19 @@ class _FakeProLikeService:
     def __init__(self):
         self.calls = []
 
+    def generate_images(self, **kwargs):
+        self.calls.append(("generate", kwargs))
+        return [MCPImage(data=b"thumb", format="jpeg")], [
+            {
+                "full_path": os.path.join(os.getcwd(), "out.png"),
+                "width": 1,
+                "height": 1,
+                "size_bytes": 4,
+            }
+        ]
+
     def edit_images(self, **kwargs):
-        self.calls.append(kwargs)
+        self.calls.append(("edit", kwargs))
         return [MCPImage(data=b"thumb", format="jpeg")], [
             {
                 "full_path": os.path.join(os.getcwd(), "out.png"),
@@ -117,7 +128,8 @@ def test_edit_mode_pro_routes_to_selected_service_for_path(monkeypatch, tmp_path
 
     assert pro_service.calls, "Expected Pro-like service to be called"
     assert enhanced.calls == []
-    assert pro_service.calls[0]["output_path"] == str(out)
+    assert pro_service.calls[0][0] == "edit"
+    assert pro_service.calls[0][1]["output_path"] == str(out)
     assert result.structured_content["model_tier"] == "pro"
     assert result.structured_content["model_id"] == "gemini-3-pro-image-preview"
 
@@ -154,16 +166,19 @@ def test_edit_mode_nb2_routes_to_selected_service_for_file_id(monkeypatch, tmp_p
         model_tier="nb2",
         file_id="files/abc123",
         output_path=str(out_dir) + os.sep,
-        thinking_level="high",  # should be ignored for NB2 in tool routing
+        thinking_level="high",
     )
 
     assert files_api.calls == ["files/abc123"]
     assert nb2_service.calls, "Expected NB2 service to be called"
     assert enhanced.calls == []
-    assert nb2_service.calls[0]["file_data_part"]["file_data"]["uri"].startswith("https://")
-    assert nb2_service.calls[0]["output_path"].startswith(str(out_dir))
+    assert nb2_service.calls[0][0] == "edit"
+    assert nb2_service.calls[0][1]["file_data_part"]["file_data"]["uri"].startswith("https://")
+    assert nb2_service.calls[0][1]["output_path"].startswith(str(out_dir))
+    assert nb2_service.calls[0][1]["thinking_level"].value == "high"
     assert result.structured_content["model_tier"] == "nb2"
     assert result.structured_content["model_id"] == "gemini-3.1-flash-image-preview"
+    assert result.structured_content["thinking_level"] == "high"
 
 
 @pytest.mark.unit
@@ -202,3 +217,45 @@ def test_edit_mode_flash_routes_to_enhanced_service(monkeypatch, tmp_path):
     assert enhanced.calls[0][1]["output_path"] == str(out)
     assert result.structured_content["model_tier"] == "flash"
     assert result.structured_content["model_id"] == "gemini-2.5-flash-image"
+
+
+@pytest.mark.unit
+def test_generate_mode_nb2_routes_thinking_and_extreme_aspect_ratio(monkeypatch, tmp_path):
+    from nanobanana_mcp_server.config.settings import ModelTier
+
+    gen_fn = _get_generate_image_fn()
+
+    nb2_service = _FakeProLikeService()
+    enhanced = _FakeEnhancedImageService()
+    model_selector = _FakeModelSelector(
+        selected_service=nb2_service,
+        selected_tier=ModelTier.NB2,
+        model_id="gemini-3.1-flash-image-preview",
+        name="Gemini 3.1 Flash Image",
+    )
+
+    monkeypatch.setattr("nanobanana_mcp_server.services.get_model_selector", lambda: model_selector)
+    monkeypatch.setattr(
+        "nanobanana_mcp_server.tools.generate_image._get_enhanced_image_service",
+        lambda: enhanced,
+    )
+
+    out_dir = tmp_path / "generated"
+    out_dir.mkdir()
+
+    result = gen_fn(
+        prompt="make a panorama",
+        mode="generate",
+        model_tier="nb2",
+        thinking_level="high",
+        aspect_ratio="4:1",
+        output_path=str(out_dir) + os.sep,
+    )
+
+    assert nb2_service.calls, "Expected NB2 service to be called"
+    assert nb2_service.calls[0][0] == "generate"
+    assert nb2_service.calls[0][1]["thinking_level"].value == "high"
+    assert nb2_service.calls[0][1]["aspect_ratio"] == "4:1"
+    assert result.structured_content["model_tier"] == "nb2"
+    assert result.structured_content["thinking_level"] == "high"
+    assert result.structured_content["aspect_ratio"] == "4:1"

@@ -84,28 +84,33 @@ def register_generate_image_tool(server: FastMCP):
             str | None,
             Field(
                 description="Output resolution: 'high', '4k', '2k', '1k'. "
-                "4K and 2K only available with 'pro' model. Default: 'high'."
+                "4K and 2K available with 'nb2' and 'pro' models. Default: 'high'."
             ),
         ] = "high",
         thinking_level: Annotated[
             str | None,
             Field(
-                description="Reasoning depth for Pro model: 'low' (faster), 'high' (better quality). "
-                "Only applies to Pro model. Default: None (auto)."
+                description="Reasoning depth hint: 'low' (faster), 'high' (better quality). "
+                "Applied to the 'nb2' model; 'high' also biases auto-selection toward Pro. "
+                "Default: None (auto)."
             ),
         ] = None,
         enable_grounding: Annotated[
             bool,
             Field(
-                description="Enable Google Search grounding for factual accuracy (Pro model only). "
+                description="Enable Google Search grounding for factual accuracy (NB2 and Pro models). "
                 "Useful for real-world subjects. Default: true."
             ),
         ] = True,
         aspect_ratio: Annotated[
-            Literal["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"] | None,
+            Literal[
+                "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9",
+                "4:1", "1:4", "8:1", "1:8",
+            ] | None,
             Field(
                 description="Optional output aspect ratio (e.g., '16:9'). "
-                "See docs for supported values: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9."
+                "Standard: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9. "
+                "Extreme (nb2 only): 4:1, 1:4, 8:1, 1:8."
             ),
         ] = None,
         output_path: Annotated[
@@ -272,7 +277,7 @@ def register_generate_image_tool(server: FastMCP):
                             output_path=output_path,
                             thinking_level=(
                                 ThinkingLevel(thinking_level)
-                                if (thinking_level and selected_tier == ModelTier.PRO)
+                                if (thinking_level and selected_tier == ModelTier.NB2)
                                 else None
                             ),
                             use_storage=True,
@@ -305,7 +310,7 @@ def register_generate_image_tool(server: FastMCP):
                             output_path=output_path,
                             thinking_level=(
                                 ThinkingLevel(thinking_level)
-                                if (thinking_level and selected_tier == ModelTier.PRO)
+                                if (thinking_level and selected_tier == ModelTier.NB2)
                                 else None
                             ),
                             use_storage=True,
@@ -363,7 +368,6 @@ def register_generate_image_tool(server: FastMCP):
                         resolution=resolution,
                         aspect_ratio=aspect_ratio,
                         output_path=output_path,
-                        thinking_level=ThinkingLevel(thinking_level) if thinking_level else None,
                         enable_grounding=enable_grounding,
                         negative_prompt=negative_prompt,
                         system_instruction=system_instruction,
@@ -371,7 +375,7 @@ def register_generate_image_tool(server: FastMCP):
                         use_storage=True,
                     )
                 elif selected_tier == ModelTier.NB2:
-                    # Use NB2 service (Flash speed + Pro quality, no thinking_level)
+                    # Use NB2 service (Flash speed + Pro quality, supports thinking)
                     logger.info(f"Using NB2 model: {model_info['model_id']}")
                     thumbnail_images, metadata = selected_service.generate_images(
                         prompt=prompt,
@@ -379,6 +383,7 @@ def register_generate_image_tool(server: FastMCP):
                         resolution=resolution,
                         aspect_ratio=aspect_ratio,
                         output_path=output_path,
+                        thinking_level=ThinkingLevel(thinking_level) if thinking_level else None,
                         enable_grounding=enable_grounding,
                         negative_prompt=negative_prompt,
                         system_instruction=system_instruction,
@@ -477,14 +482,17 @@ def register_generate_image_tool(server: FastMCP):
 
                 # Add model-specific information
                 if selected_tier == ModelTier.PRO:
-                    summary_lines.append(f"🧠 **Thinking Level**: {thinking_level or 'auto'}")
                     summary_lines.append(f"📏 **Resolution**: {resolution}")
                     if enable_grounding:
                         summary_lines.append("🔍 **Grounding**: Enabled (Google Search)")
                 elif selected_tier == ModelTier.NB2:
+                    if thinking_level:
+                        summary_lines.append(f"🧠 **Thinking Level**: {thinking_level}")
                     summary_lines.append(f"📏 **Resolution**: {resolution}")
                     if enable_grounding:
                         summary_lines.append("🔍 **Grounding**: Enabled (Google Search)")
+                    if aspect_ratio in ("4:1", "1:4", "8:1", "1:8"):
+                        summary_lines.append(f"📐 **Extreme Aspect Ratio**: {aspect_ratio}")
                 summary_lines.append("")  # Blank line
 
                 # Add source information based on mode and inputs
@@ -552,7 +560,7 @@ def register_generate_image_tool(server: FastMCP):
                 "model_id": model_info["model_id"],
                 "requested_tier": model_tier,
                 "auto_selected": tier == ModelTier.AUTO,
-                "thinking_level": thinking_level if selected_tier == ModelTier.PRO else None,
+                "thinking_level": thinking_level if selected_tier == ModelTier.NB2 else None,
                 "resolution": resolution,
                 "grounding_enabled": enable_grounding if selected_tier in (ModelTier.PRO, ModelTier.NB2) else False,
                 "requested": n,

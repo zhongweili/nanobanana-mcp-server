@@ -90,7 +90,10 @@ class ProImageService:
 
         # Validate aspect_ratio if provided
         if aspect_ratio:
-            validate_aspect_ratio_string(aspect_ratio)
+            validate_aspect_ratio_string(
+                aspect_ratio,
+                allow_extreme=self.config.supports_extreme_aspect_ratios,
+            )
 
         with ProgressContext(
             "pro_image_generation",
@@ -145,12 +148,13 @@ class ProImageService:
                         20 + (i * 70 // n), f"Generating high-quality image {i + 1}/{n}..."
                     )
 
-                    # Build generation config for Pro model
-                    # Note: thinking_level is NOT supported by gemini-3-pro-image-preview
-                    # Resolution is passed and mapped to image_size in gemini_client
+                    # Build generation config for the current image model.
+                    # Resolution is passed and mapped to image_size in gemini_client.
                     gen_config = {
                         "resolution": resolution,  # Will be mapped to image_size (1K, 2K, 4K)
                     }
+                    if self.config.supports_thinking:
+                        gen_config["thinking_level"] = thinking_level.value
 
                     # Grounding is controlled via prompt/system instruction
                     # not as a direct API parameter
