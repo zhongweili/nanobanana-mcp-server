@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2026-03-27
+
+### Fixed
+- **NB2 thinking support**: Send `thinking_level` to Gemini as `thinking_config` for NB2 requests
+- **NB2 aspect ratio validation**: Allow extreme aspect ratios (`4:1`, `1:4`, `8:1`, `1:8`) on the NB2 path
+- **Runtime/test alignment**: Update tests to cover NB2 thinking and model-specific aspect ratio behavior
+
 ## [0.3.3] - 2026-01-26
 
 ### Added
@@ -79,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test coverage
 - MIT License
 
+[0.4.4]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.4.3...v0.4.4
 [0.3.3]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.3.0...v0.3.1
