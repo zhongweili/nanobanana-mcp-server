@@ -20,11 +20,11 @@ Handles generation, editing, and multi-image conditioning in one unified tool.
 | `input_image_path_1/2/3` | str | No | None | Local paths for conditioning |
 | `file_id` | str | No | None | Files API ID (e.g. `files/abc123`) |
 | `mode` | str | No | `"auto"` | `"generate"`, `"edit"`, `"auto"` |
-| `model_tier` | str | No | `"auto"` | `"flash"`, `"pro"`, `"auto"` |
-| `resolution` | str | No | `"high"` | `"high"`, `"4k"`, `"2k"`, `"1k"` — 4K/2K force Pro model |
-| `thinking_level` | str | No | `"high"` | `"low"`, `"high"` — Pro model selection hint only |
-| `enable_grounding` | bool | No | `true` | Google Search integration (Pro model) |
-| `aspect_ratio` | str | No | None | `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9` |
+| `model_tier` | str | No | `"auto"` | `"flash"`, `"nb2"`, `"pro"`, `"auto"` |
+| `resolution` | str | No | `"high"` | `"high"`, `"4k"`, `"2k"`, `"1k"` |
+| `thinking_level` | str | No | None | `"low"`, `"high"` — Pro and NB2 models |
+| `enable_grounding` | bool | No | `true` | Google Search integration (Pro and NB2 models) |
+| `aspect_ratio` | str | No | None | Standard: `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9`; Extreme (nb2 only): `4:1`, `1:4`, `8:1`, `1:8` |
 | `output_path` | str | No | None | File path or directory path for saving |
 | `return_full_image` | bool | No | None | Full resolution vs thumbnail in response |
 

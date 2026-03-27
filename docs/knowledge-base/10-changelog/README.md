@@ -4,16 +4,32 @@ Tracks knowledge base updates alongside code changes.
 
 ---
 
+## 2026-03-26
+
+### v0.4.3 — NB2 thinking + extreme aspect ratios (PR #24)
+
+**NB2 now correctly enables thinking and exposes extreme aspect ratios**
+
+- `NanoBanana2Config`: corrected `supports_thinking=True` (was `False`) and added `supports_extreme_aspect_ratios=True`
+- `generate_image` tool: `thinking_level` is now passed to NB2 in both generation and edit code paths (was Pro-only)
+- `generate_image` tool: `aspect_ratio` Literal extended with NB2 extreme ratios `4:1`, `1:4`, `8:1`, `1:8`
+- Edit-path `thinking_level` guard updated from `PRO`-only to `PRO or NB2`
+- `structured_content` response includes `thinking_level` for NB2 responses
+
+**Affected docs:** `02-api`, `06-business-logic`, `08-configuration`
+
+---
+
 ## 2026-02-27
 
 ### v0.4.2 — NB2 routing fixes (knowledge base updated)
 
 **Nano Banana 2 (`gemini-3.1-flash-image-preview`) added as default model**
 
-- Added `ModelTier.NB2` enum and `NanoBanana2Config(ProImageConfig)` — inherits 4K + grounding, overrides model name and disables thinking
+- Added `ModelTier.NB2` enum and `NanoBanana2Config(ProImageConfig)` — inherits 4K + grounding, overrides model name + timeout, enables thinking (`supports_thinking=True`) and extreme aspect ratios (`4:1`, `1:4`, `8:1`, `1:8`)
 - `NB2` is now the AUTO default; PRO only selected for strong quality keywords or explicit `thinking_level="high"`
 - `ModelSelector` updated: new `nb2_service` parameter, NB2 explicit routing, `_auto_select()` default changed from FLASH → NB2
-- `generate_image` tool: new NB2 generation branch (no `thinking_level`), updated param descriptions
+- `generate_image` tool: NB2 generation and edit branches pass `thinking_level`; extreme aspect ratios added to `aspect_ratio` Literal
 - Three default-parameter routing bugs fixed across v0.4.0–v0.4.2:
   - `resolution="high"` default was adding `quality_score +3` → always PRO (fixed v0.4.1)
   - `enable_grounding=True` default was adding `quality_score +2` → always PRO (fixed v0.4.1)
