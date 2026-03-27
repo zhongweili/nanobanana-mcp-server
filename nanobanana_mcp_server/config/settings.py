@@ -152,9 +152,10 @@ class ProImageConfig(BaseModelConfig):
     default_resolution: str = "high"  # low/medium/high
     default_thinking_level: ThinkingLevel = ThinkingLevel.HIGH
     default_media_resolution: MediaResolution = MediaResolution.HIGH
-    supports_thinking: bool = True
+    supports_thinking: bool = False
     supports_grounding: bool = True
     supports_media_resolution: bool = True
+    supports_extreme_aspect_ratios: bool = False
     enable_search_grounding: bool = True
     request_timeout: int = 90  # Pro model needs more time for 4K
 

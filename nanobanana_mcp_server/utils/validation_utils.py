@@ -208,7 +208,7 @@ def validate_timeout_seconds(
         raise ValidationError(f"Timeout must be at most {max_timeout} seconds")
 
 
-def validate_aspect_ratio_string(aspect_ratio: str) -> None:
+def validate_aspect_ratio_string(aspect_ratio: str, *, allow_extreme: bool = False) -> None:
     """
     Validate aspect ratio string format and supported values.
 
@@ -217,12 +217,14 @@ def validate_aspect_ratio_string(aspect_ratio: str) -> None:
 
     Args:
         aspect_ratio: Aspect ratio string (e.g., "16:9", "4:3")
+        allow_extreme: Whether to allow NB2-only extreme aspect ratios
 
     Raises:
         ValidationError: If aspect ratio is invalid or unsupported
 
     Supported aspect ratios:
-        1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9
+        Standard: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9
+        Extreme (NB2 only): 4:1, 1:4, 8:1, 1:8
     """
     if not isinstance(aspect_ratio, str):
         raise ValidationError("Aspect ratio must be a string")
@@ -241,6 +243,8 @@ def validate_aspect_ratio_string(aspect_ratio: str) -> None:
         "16:9",
         "21:9",
     ]
+    if allow_extreme:
+        SUPPORTED_ASPECT_RATIOS.extend(["4:1", "1:4", "8:1", "1:8"])
 
     if aspect_ratio not in SUPPORTED_ASPECT_RATIOS:
         raise ValidationError(

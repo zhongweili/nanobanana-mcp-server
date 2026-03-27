@@ -17,7 +17,20 @@ from nanobanana_mcp_server.config.settings import ServerConfig, GeminiConfig
 
 
 # Supported aspect ratios according to Gemini API docs
-SUPPORTED_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]
+STANDARD_ASPECT_RATIOS = [
+    "1:1",
+    "2:3",
+    "3:2",
+    "3:4",
+    "4:3",
+    "4:5",
+    "5:4",
+    "9:16",
+    "16:9",
+    "21:9",
+]
+EXTREME_ASPECT_RATIOS = ["4:1", "1:4", "8:1", "1:8"]
+SUPPORTED_ASPECT_RATIOS = STANDARD_ASPECT_RATIOS + EXTREME_ASPECT_RATIOS
 
 
 class TestAspectRatioValidation:
@@ -29,6 +42,16 @@ class TestAspectRatioValidation:
         # This tests the Literal type constraint in generate_image.py
         # The Pydantic validation should accept these values
         assert ratio in SUPPORTED_ASPECT_RATIOS
+
+    @pytest.mark.parametrize("ratio", EXTREME_ASPECT_RATIOS)
+    def test_extreme_aspect_ratios_require_nb2_opt_in(self, ratio):
+        from nanobanana_mcp_server.core.exceptions import ValidationError
+        from nanobanana_mcp_server.utils.validation_utils import validate_aspect_ratio_string
+
+        with pytest.raises(ValidationError):
+            validate_aspect_ratio_string(ratio)
+
+        validate_aspect_ratio_string(ratio, allow_extreme=True)
 
     def test_aspect_ratio_literal_type_constraint(self):
         """Verify the tool parameter uses Literal type for type safety."""
