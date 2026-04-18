@@ -442,6 +442,16 @@ When generating multiple images with a file path, images are automatically numbe
 2. `IMAGE_OUTPUT_DIR` environment variable
 3. `~/nanobanana-images` (default fallback)
 
+**Relative path behavior:**
+
+- `output_path=None` uses `IMAGE_OUTPUT_DIR`.
+- A **relative file path** such as `output_path="image.png"` is resolved relative to the **server's current working directory**, not `IMAGE_OUTPUT_DIR`.
+- To guarantee output lands under `IMAGE_OUTPUT_DIR`, either:
+  - leave `output_path` unset, or
+  - pass an absolute path inside that directory.
+- To use a custom directory and let Nano Banana choose the filename, pass a directory path (for example `/path/to/output/`).
+- Relative directory paths are also resolved from the server's current working directory. If you want a non-existent path to be treated as a directory, include the trailing slash (for example `drafts/`).
+
 ```python
 # Save to specific location with Pro model
 generate_image(
@@ -450,7 +460,13 @@ generate_image(
     output_path="/Users/me/photos/headshot.png"
 )
 
-# Save multiple images to a directory
+# Relative file paths are resolved from the server working directory
+generate_image(
+    prompt="Logo draft",
+    output_path="drafts/logo.png"
+)
+
+# Save multiple images to a custom directory
 generate_image(
     prompt="Product variations",
     n=4,
