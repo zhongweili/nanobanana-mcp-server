@@ -8,12 +8,40 @@ capabilities through Google's Gemini 2.5 Flash Image model.
 
 import sys
 import os
-from .config.settings import ServerConfig, GeminiConfig
+import logging
+
+from .config.settings import (
+    FlashImageConfig,
+    GeminiConfig,
+    ModelSelectionConfig,
+    ModelTier,
+    NanoBanana2Config,
+    ProImageConfig,
+    ServerConfig,
+)
 from .core.server import NanoBananaMCP
 from .core.exceptions import ConfigurationError
 from .utils.logging_utils import setup_logging
 from . import services
-import logging
+
+
+def _default_model_summary() -> str:
+    """Return a truthful startup summary of the configured default model behavior."""
+    selection = ModelSelectionConfig.from_env()
+
+    if selection.default_tier == ModelTier.FLASH:
+        return f"{selection.default_tier.value} ({FlashImageConfig().model_name})"
+    if selection.default_tier == ModelTier.PRO:
+        return f"{selection.default_tier.value} ({ProImageConfig().model_name})"
+    if selection.default_tier == ModelTier.NB2:
+        return f"{selection.default_tier.value} ({NanoBanana2Config().model_name})"
+
+    # AUTO is a routing strategy, not a single concrete model.
+    return (
+        "auto (smart selection across "
+        f"{NanoBanana2Config().model_name}, {ProImageConfig().model_name}, "
+        f"and {FlashImageConfig().model_name})"
+    )
 
 
 def create_app():
@@ -38,7 +66,7 @@ def create_app():
         gemini_config = GeminiConfig()
 
         logger.info(f"Server transport: {server_config.transport}")
-        logger.info(f"Gemini model: {gemini_config.model_name}")
+        logger.info(f"Default model behavior: {_default_model_summary()}")
 
         # Initialize services first
         services.initialize_services(server_config, gemini_config)
@@ -79,7 +107,7 @@ def create_wrapper_app() -> NanoBananaMCP:
         gemini_config = GeminiConfig()
 
         logger.info(f"Server transport: {server_config.transport}")
-        logger.info(f"Gemini model: {gemini_config.model_name}")
+        logger.info(f"Default model behavior: {_default_model_summary()}")
 
         # Initialize services first
         services.initialize_services(server_config, gemini_config)
