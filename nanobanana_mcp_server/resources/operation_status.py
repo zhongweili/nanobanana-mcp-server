@@ -9,6 +9,7 @@ import logging
 
 from ..core.progress_tracker import get_progress_tracker, OperationStatus
 from ..core.exceptions import ValidationError
+from ..utils.client_errors import client_safe_message
 
 
 def register_operation_status_resources(server: FastMCP):
@@ -76,7 +77,11 @@ def register_operation_status_resources(server: FastMCP):
             return {"error": "validation_error", "message": str(e), "operation_id": operation_id}
         except Exception as e:
             logger.error(f"Error getting progress for {operation_id}: {e}")
-            return {"error": "server_error", "message": str(e), "operation_id": operation_id}
+            return {
+                "error": "server_error",
+                "message": client_safe_message(str(e)),
+                "operation_id": operation_id,
+            }
 
     @server.resource("progress://operations/list")
     def list_operations() -> Dict[str, Any]:
@@ -132,4 +137,8 @@ def register_operation_status_resources(server: FastMCP):
 
         except Exception as e:
             logger.error(f"Error listing operations: {e}")
-            return {"error": "server_error", "message": str(e), "operations": []}
+            return {
+                "error": "server_error",
+                "message": client_safe_message(str(e)),
+                "operations": [],
+            }

@@ -14,6 +14,7 @@ from fastmcp import FastMCP, Context
 from fastmcp.tools.tool import ToolResult
 from mcp.types import TextContent
 from ..core.exceptions import ValidationError
+from ..utils.concurrency_limit import limit_tool_concurrency
 import logging
 
 
@@ -23,10 +24,11 @@ def register_maintenance_tool(server: FastMCP):
     @server.tool(
         annotations={
             "title": "Maintenance and cleanup operations",
-            "readOnlyHint": True,
+            "readOnlyHint": False,
             "openWorldHint": True,
         }
     )
+    @limit_tool_concurrency
     def maintenance(
         operation: Annotated[
             str,

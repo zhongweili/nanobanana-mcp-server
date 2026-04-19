@@ -31,7 +31,7 @@ def register_photography_prompts(server: FastMCP):
                 f"Lighting: {lighting}. Camera: {camera}. {aspect_hint}."
             )
 
-            logger.debug(f"Generated photorealistic_shot prompt: {prompt[:100]}...")
+            logger.debug("Generated photorealistic_shot prompt (%d chars)", len(prompt))
             return prompt
 
         except Exception as e:

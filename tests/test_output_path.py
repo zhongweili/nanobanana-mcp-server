@@ -9,16 +9,19 @@ This module tests the output_path feature, including:
 """
 
 import os
-import pytest
 from pathlib import Path
+import sys
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
+import pytest
+
+from nanobanana_mcp_server.core.exceptions import ValidationError
 from nanobanana_mcp_server.utils.validation_utils import (
+    IMAGE_EXTENSIONS,
     resolve_output_path,
     validate_output_path,
-    IMAGE_EXTENSIONS,
 )
-from nanobanana_mcp_server.core.exceptions import ValidationError
 
 
 class TestResolveOutputPath:
@@ -121,10 +124,13 @@ class TestResolveOutputPath:
         assert os.path.isabs(result)
 
     def test_home_directory_expansion(self):
-        """Paths with ~ are expanded."""
-        result = resolve_output_path("~/images/photo.png", "/default", "gen.png")
-        assert "~" not in result
-        assert os.path.isabs(result)
+        """Paths with ~ are expanded (use isolated HOME so tests do not touch the real home)."""
+        with TemporaryDirectory() as fake_home, patch.dict(os.environ, {"HOME": fake_home}, clear=False):
+            result = resolve_output_path("~/images/photo.png", "/default", "gen.png")
+            assert "~" not in result
+            assert os.path.isabs(result)
+            assert result.startswith(os.path.realpath(fake_home))
+            assert "images" in result
 
     def test_multiple_images_first_index(self):
         """First image (index 1) uses exact path."""
@@ -175,15 +181,44 @@ class TestValidateOutputPath:
         validate_output_path(None)
 
     def test_valid_file_path(self):
-        """Valid file path passes validation."""
+        """Valid file path passes validation when under allowed base."""
         with TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, "image.png")
-            validate_output_path(path)
+            validate_output_path(path, tmpdir)
 
     def test_valid_directory_path(self):
-        """Valid directory path passes validation."""
+        """Valid directory path passes validation when under allowed base."""
         with TemporaryDirectory() as tmpdir:
-            validate_output_path(tmpdir)
+            validate_output_path(tmpdir, tmpdir)
+
+    def test_path_outside_allowed_base_raises(self):
+        """Resolved path must stay inside configured output directory."""
+        with TemporaryDirectory() as base, TemporaryDirectory() as other:
+            outside_file = os.path.join(other, "x.png")
+            with pytest.raises(ValidationError, match="within the configured"):
+                validate_output_path(outside_file, base)
+
+    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX symlink layout")
+    def test_symlink_in_path_chain_escaping_base_raises(self):
+        """Reject symlink under the base that points outside even if realpath ends inside base."""
+        with TemporaryDirectory() as td:
+            base = os.path.join(td, "m")
+            nested = os.path.join(base, "a", "nested")
+            os.makedirs(nested)
+            outside = os.path.join(td, "outside")
+            os.makedirs(outside)
+            try:
+                os.symlink(outside, os.path.join(base, "a", "link"))
+                os.symlink(nested, os.path.join(outside, "back"))
+            except OSError:
+                pytest.skip("could not create symlink")
+
+            user_path = os.path.join(base, "a", "link", "back", "file.png")
+            resolved = os.path.realpath(user_path)
+            assert resolved.startswith(os.path.realpath(base))
+
+            with pytest.raises(ValidationError, match="symlink"):
+                validate_output_path(user_path, base)
 
     def test_empty_string_raises_error(self):
         """Empty string raises ValidationError."""
@@ -246,8 +281,9 @@ class TestOutputPathToolParameter:
 
     def test_generate_image_accepts_output_path(self):
         """Verify generate_image function accepts output_path parameter."""
-        from nanobanana_mcp_server.tools.generate_image import register_generate_image_tool
         from fastmcp import FastMCP
+
+        from nanobanana_mcp_server.tools.generate_image import register_generate_image_tool
 
         server = FastMCP("test")
         register_generate_image_tool(server)
@@ -262,8 +298,9 @@ class TestOutputPathToolParameter:
 
     def test_output_path_has_correct_default(self):
         """Verify output_path defaults to None (not required)."""
-        from nanobanana_mcp_server.tools.generate_image import register_generate_image_tool
         from fastmcp import FastMCP
+
+        from nanobanana_mcp_server.tools.generate_image import register_generate_image_tool
 
         server = FastMCP("test")
         register_generate_image_tool(server)
@@ -281,40 +318,45 @@ class TestEnhancedImageServiceOutputPath:
 
     def test_generate_images_accepts_output_path(self):
         """Verify generate_images method accepts output_path parameter."""
-        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
         import inspect
+
+        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
 
         sig = inspect.signature(EnhancedImageService.generate_images)
         assert "output_path" in sig.parameters
 
     def test_edit_image_by_file_id_accepts_output_path(self):
         """Verify edit_image_by_file_id accepts output_path parameter."""
-        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
         import inspect
+
+        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
 
         sig = inspect.signature(EnhancedImageService.edit_image_by_file_id)
         assert "output_path" in sig.parameters
 
     def test_edit_image_by_path_accepts_output_path(self):
         """Verify edit_image_by_path accepts output_path parameter."""
-        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
         import inspect
+
+        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
 
         sig = inspect.signature(EnhancedImageService.edit_image_by_path)
         assert "output_path" in sig.parameters
 
     def test_process_generated_image_accepts_output_path(self):
         """Verify _process_generated_image accepts output_path parameter."""
-        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
         import inspect
+
+        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
 
         sig = inspect.signature(EnhancedImageService._process_generated_image)
         assert "output_path" in sig.parameters
 
     def test_process_edited_image_accepts_output_path(self):
         """Verify _process_edited_image accepts output_path parameter."""
-        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
         import inspect
+
+        from nanobanana_mcp_server.services.enhanced_image_service import EnhancedImageService
 
         sig = inspect.signature(EnhancedImageService._process_edited_image)
         assert "output_path" in sig.parameters

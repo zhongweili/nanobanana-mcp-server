@@ -24,7 +24,7 @@ def register_design_prompts(server: FastMCP):
                 f"in a {font_style} font. The design should be {style_desc}. Color scheme: {color_scheme}."
             )
 
-            logger.debug(f"Generated logo_text prompt: {prompt[:100]}...")
+            logger.debug("Generated logo_text prompt (%d chars)", len(prompt))
             return prompt
 
         except Exception as e:
@@ -58,7 +58,7 @@ def register_design_prompts(server: FastMCP):
                 f"Lighting: {lighting_setup}. Camera angle: {angle}. Ultra-realistic. {aspect_hint}."
             )
 
-            logger.debug(f"Generated product_shot prompt: {prompt[:100]}...")
+            logger.debug("Generated product_shot prompt (%d chars)", len(prompt))
             return prompt
 
         except Exception as e:
@@ -78,7 +78,7 @@ def register_design_prompts(server: FastMCP):
                 f"Background must be white."
             )
 
-            logger.debug(f"Generated sticker_flat prompt: {prompt[:100]}...")
+            logger.debug("Generated sticker_flat prompt (%d chars)", len(prompt))
             return prompt
 
         except Exception as e:

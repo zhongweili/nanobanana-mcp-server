@@ -17,13 +17,13 @@
   },
   "server": {
     "name": "nanobanana-mcp-server",
-    "version": "0.1.0",
-    "description": "AI-powered image generation using Gemini 2.5 Flash Image",
+    "version": "0.4.4",
+    "description": "AI-powered image generation using Gemini 3 Pro / Flash with intelligent model selection",
     "entrypoint": "nanobanana_mcp_server.server:create_app",
     "dependencies": [
       "fastmcp>=2.11.0",
       "google-genai>=0.3.0",
-      "pillow>=10.4.0",
+      "pillow>=12.2.0",
       "python-dotenv>=1.0.1",
       "pydantic>=2.0.0"
     ],

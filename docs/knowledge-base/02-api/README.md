@@ -78,9 +78,9 @@ Run maintenance operations:
 | URI Pattern | File | Description |
 |-------------|------|-------------|
 | `gemini://files/{name}` | `resources/file_metadata.py` | File metadata from Gemini Files API |
-| `nanobanana://templates/{category}` | `resources/template_catalog.py` | Prompt templates by category |
-| `nanobanana://images/{id}` | `resources/stored_images.py` | Stored image and thumbnail access |
-| `nanobanana://status/{op_id}` | `resources/operation_status.py` | Operation progress tracking |
+| `nano-banana://prompt-templates` | `resources/template_catalog.py` | Prompt template catalog |
+| `progress://operations/{operation_id}` | `resources/operation_status.py` | Operation progress tracking |
+| `progress://operations/list` | `resources/operation_status.py` | List in-flight operations |
 
 ---
 

@@ -16,7 +16,7 @@ def register_editing_prompts(server: FastMCP):
                 f"Ensure the change {how_it_should_blend} and matches the original style, lighting, and perspective."
             )
 
-            logger.debug(f"Generated iterative_edit_instruction: {prompt[:100]}...")
+            logger.debug("Generated iterative_edit_instruction (%d chars)", len(prompt))
             return prompt
 
         except Exception as e:
@@ -37,7 +37,7 @@ def register_editing_prompts(server: FastMCP):
                 f"Preserve composition; render with {style_desc}."
             )
 
-            logger.debug(f"Generated composition_and_style_transfer: {prompt[:100]}...")
+            logger.debug("Generated composition_and_style_transfer (%d chars)", len(prompt))
             return prompt
 
         except Exception as e:

@@ -2,11 +2,46 @@ from dataclasses import dataclass, field
 from enum import Enum
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 
 from ..core.exceptions import ADCConfigurationError
 from .constants import AUTH_ERROR_MESSAGES
+
+
+def validate_gemini_base_url(raw_url: str) -> str:
+    """
+    Validate GEMINI_BASE_URL to mitigate SSRF / API key theft from misconfigured env.
+
+    Allows Google Generative Language API, Vertex AI regional endpoints, and local dev.
+    """
+    u = raw_url.strip()
+    if not u:
+        raise ValueError("GEMINI_BASE_URL cannot be empty when set")
+    parsed = urlsplit(u)
+    if parsed.scheme not in ("https", "http"):
+        raise ValueError(f"GEMINI_BASE_URL must use http or https, got {parsed.scheme!r}")
+    hostname = (parsed.hostname or "").lower().rstrip(".")
+    if not hostname:
+        raise ValueError("GEMINI_BASE_URL must include a hostname")
+    if parsed.scheme == "http" and hostname not in ("localhost", "127.0.0.1"):
+        raise ValueError("GEMINI_BASE_URL may only use http for localhost or 127.0.0.1")
+
+    allowed = (
+        hostname in ("localhost", "127.0.0.1")
+        or hostname == "generativelanguage.googleapis.com"
+        or hostname.endswith("-aiplatform.googleapis.com")
+        or hostname == "aiplatform.googleapis.com"
+    )
+
+    if not allowed:
+        raise ValueError(
+            f"GEMINI_BASE_URL host is not allowed: {hostname}. "
+            "Use generativelanguage.googleapis.com, *-aiplatform.googleapis.com, "
+            "or http(s)://localhost for development."
+        )
+    return u.rstrip("/")
 
 
 class ModelTier(str, Enum):
@@ -105,6 +140,8 @@ class ServerConfig:
         output_path.mkdir(parents=True, exist_ok=True)
 
         gemini_base_url = os.getenv("GEMINI_BASE_URL", "").strip() or None
+        if gemini_base_url:
+            gemini_base_url = validate_gemini_base_url(gemini_base_url)
 
         return cls(
             gemini_api_key=api_key,

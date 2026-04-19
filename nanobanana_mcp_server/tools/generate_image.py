@@ -12,7 +12,9 @@ from pydantic import Field
 from ..config.constants import MAX_INPUT_IMAGES
 from ..config.settings import ModelTier, ThinkingLevel
 from ..core.exceptions import ValidationError
-from ..utils.validation_utils import validate_output_path
+from ..core.validation import validate_edit_instruction, validate_prompt
+from ..utils.concurrency_limit import limit_tool_concurrency
+from ..utils.validation_utils import validate_input_image_path, validate_output_path
 
 
 def register_generate_image_tool(server: FastMCP):
@@ -21,10 +23,11 @@ def register_generate_image_tool(server: FastMCP):
     @server.tool(
         annotations={
             "title": "Generate or edit images (Multi-Model: Flash & Pro)",
-            "readOnlyHint": True,
+            "readOnlyHint": False,
             "openWorldHint": True,
         }
     )
+    @limit_tool_concurrency
     def generate_image(
         prompt: Annotated[
             str,
@@ -148,6 +151,10 @@ def register_generate_image_tool(server: FastMCP):
         logger = logging.getLogger(__name__)
 
         try:
+            from ..services import get_server_config
+
+            server_cfg = get_server_config()
+
             # Construct input_image_paths list from individual parameters
             input_image_paths = []
             for path in [input_image_path_1, input_image_path_2, input_image_path_3]:
@@ -159,13 +166,23 @@ def register_generate_image_tool(server: FastMCP):
                 input_image_paths = None
 
             logger.info(
-                f"Generate image request: prompt='{prompt[:50]}...', n={n}, "
-                f"paths={input_image_paths}, model_tier={model_tier}, aspect_ratio={aspect_ratio}, "
-                f"output_path={output_path}"
+                "Generate image request: n=%s, model_tier=%s, aspect_ratio=%s, "
+                "has_output_path=%s, input_image_count=%s",
+                n,
+                model_tier,
+                aspect_ratio,
+                output_path is not None,
+                len(input_image_paths) if input_image_paths else 0,
+            )
+            logger.debug(
+                "Generate image prompt preview: %s...",
+                (prompt[:80] + "…") if len(prompt) > 80 else prompt,
             )
 
-            # Validate output_path if provided
-            validate_output_path(output_path)
+            validate_prompt(prompt)
+
+            # Validate output_path if provided (must stay within configured output dir)
+            validate_output_path(output_path, server_cfg.image_output_dir)
 
             # Auto-detect mode based on inputs
             detected_mode = mode
@@ -189,6 +206,12 @@ def register_generate_image_tool(server: FastMCP):
             except ValueError:
                 logger.warning(f"Invalid thinking_level '{thinking_level}', defaulting to HIGH")
                 thinking_level = "high"
+
+            # Restrict input images to allowed directories (mitigate arbitrary file read)
+            if input_image_paths:
+                allowed_bases = _input_image_allowed_base_dirs(server_cfg.image_output_dir)
+                for path in input_image_paths:
+                    validate_input_image_path(path, allowed_bases)
 
             # Get model selector to determine which model to use
             from ..services import get_model_selector
@@ -220,15 +243,9 @@ def register_generate_image_tool(server: FastMCP):
                 if len(input_image_paths) > MAX_INPUT_IMAGES:
                     raise ValidationError(f"Maximum {MAX_INPUT_IMAGES} input images allowed")
 
-                # Validate that all files exist
-                for i, path in enumerate(input_image_paths):
-                    if not os.path.exists(path):
-                        raise ValidationError(f"Input image {i + 1} not found: {path}")
-                    if not os.path.isfile(path):
-                        raise ValidationError(f"Input image {i + 1} is not a file: {path}")
-
             # Mode-specific validation
             if detected_mode == "edit":
+                validate_edit_instruction(prompt)
                 if not file_id and not input_image_paths:
                     raise ValidationError("Edit mode requires either file_id or input_image_paths")
                 if file_id and input_image_paths and len(input_image_paths) > 1:
@@ -406,10 +423,8 @@ def register_generate_image_tool(server: FastMCP):
             # Resolve return_full_image: tool param > server config > env var > default (false)
             effective_return_full_image = return_full_image
             if effective_return_full_image is None:
-                from ..services import get_server_config
-
                 try:
-                    effective_return_full_image = get_server_config().return_full_image
+                    effective_return_full_image = server_cfg.return_full_image
                 except RuntimeError:
                     effective_return_full_image = (
                         os.getenv("RETURN_FULL_IMAGE", "false").strip().lower()
@@ -621,6 +636,21 @@ def register_generate_image_tool(server: FastMCP):
         except Exception as e:
             logger.error(f"Unexpected error in generate_image: {e}")
             raise
+
+
+def _input_image_allowed_base_dirs(image_output_dir: str) -> list[str]:
+    """Directories from which MCP clients may read conditioning images (see NANOBANANA_INPUT_IMAGE_DIRS)."""
+    bases = [
+        os.path.realpath(os.path.expanduser(image_output_dir)),
+        os.path.realpath(os.path.join(os.path.expanduser(image_output_dir), "temp_images")),
+    ]
+    extra = os.getenv("NANOBANANA_INPUT_IMAGE_DIRS", "").strip()
+    if extra:
+        for part in extra.split(","):
+            p = part.strip()
+            if p:
+                bases.append(os.path.realpath(os.path.expanduser(p)))
+    return bases
 
 
 def _get_enhanced_image_service():

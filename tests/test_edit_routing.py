@@ -92,6 +92,21 @@ def _get_generate_image_fn():
     return tool.fn
 
 
+class _FakeServerConfig:
+    """Minimal ServerConfig for generate_image path validation in unit tests."""
+
+    def __init__(self, image_output_dir: str, return_full_image: bool = False):
+        self.image_output_dir = image_output_dir
+        self.return_full_image = return_full_image
+        self.max_concurrent_requests = 10
+        self.mask_error_details = False
+
+
+def _patch_tool_server_config(monkeypatch, image_output_dir: str) -> None:
+    cfg = _FakeServerConfig(image_output_dir)
+    monkeypatch.setattr("nanobanana_mcp_server.services.get_server_config", lambda: cfg)
+
+
 @pytest.mark.unit
 def test_edit_mode_pro_routes_to_selected_service_for_path(monkeypatch, tmp_path):
     from nanobanana_mcp_server.config.settings import ModelTier
@@ -116,6 +131,7 @@ def test_edit_mode_pro_routes_to_selected_service_for_path(monkeypatch, tmp_path
         "nanobanana_mcp_server.tools.generate_image._get_enhanced_image_service",
         lambda: enhanced,
     )
+    _patch_tool_server_config(monkeypatch, str(tmp_path))
 
     result = gen_fn(
         prompt="make it cooler",
@@ -156,6 +172,7 @@ def test_edit_mode_nb2_routes_to_selected_service_for_file_id(monkeypatch, tmp_p
         "nanobanana_mcp_server.tools.generate_image._get_enhanced_image_service",
         lambda: enhanced,
     )
+    _patch_tool_server_config(monkeypatch, str(tmp_path))
 
     out_dir = tmp_path / "edits"
     out_dir.mkdir()
@@ -204,6 +221,7 @@ def test_edit_mode_flash_routes_to_enhanced_service(monkeypatch, tmp_path):
         "nanobanana_mcp_server.tools.generate_image._get_enhanced_image_service",
         lambda: enhanced,
     )
+    _patch_tool_server_config(monkeypatch, str(tmp_path))
 
     result = gen_fn(
         prompt="brighten it",
@@ -239,6 +257,7 @@ def test_generate_mode_nb2_routes_thinking_and_extreme_aspect_ratio(monkeypatch,
         "nanobanana_mcp_server.tools.generate_image._get_enhanced_image_service",
         lambda: enhanced,
     )
+    _patch_tool_server_config(monkeypatch, str(tmp_path))
 
     out_dir = tmp_path / "generated"
     out_dir.mkdir()

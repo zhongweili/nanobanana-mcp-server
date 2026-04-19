@@ -54,7 +54,6 @@ nanobanana_mcp_server/
 │   └── maintenance.py        # Maintenance tool
 ├── resources/                 # MCP resources
 │   ├── file_metadata.py      # File metadata resource
-│   ├── stored_images.py      # Image storage resource
 │   ├── template_catalog.py   # Template catalog
 │   └── operation_status.py   # Operation status
 ├── prompts/                   # Prompt templates
@@ -96,10 +95,11 @@ scripts/
 | Resource | URI Pattern | Description |
 |----------|-------------|-------------|
 | File Metadata | `gemini://files/{name}` | Gemini Files API metadata |
-| Stored Images | `file://images/{id}` | Generated image access |
-| Image Thumbnails | `file://images/{id}/thumbnail` | Image thumbnail access |
 | Template Catalog | `nano-banana://prompt-templates` | Prompt template browser |
-| Operation Status | `nano-banana://operations` | Server operation status |
+| Operation Status | `progress://operations/{id}` | Long-running operation progress |
+| Operation List | `progress://operations/list` | In-flight operations |
+
+Generated images are returned in the tool response; metadata may reference logical `file://images/{id}` URIs for thumbnails/full images (no dedicated MCP resource handler).
 
 ### Prompt Templates
 | Template | Module | Purpose |
