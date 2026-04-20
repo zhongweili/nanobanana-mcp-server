@@ -6,6 +6,9 @@ import logging
 from ..config.constants import SUPPORTED_IMAGE_TYPES
 from ..core.exceptions import ImageProcessingError, ValidationError
 
+# Decompression-bomb mitigation: cap total decoded pixels (adjust if you need huge assets).
+Image.MAX_IMAGE_PIXELS = 50_000_000
+
 
 def validate_image_format(mime_type: str) -> bool:
     """Validate that the MIME type is supported."""

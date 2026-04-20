@@ -2,7 +2,12 @@ import os
 import pytest
 from unittest.mock import MagicMock, patch
 
-from nanobanana_mcp_server.config.settings import ServerConfig, AuthMethod, GeminiConfig
+from nanobanana_mcp_server.config.settings import (
+    ServerConfig,
+    AuthMethod,
+    GeminiConfig,
+    validate_gemini_base_url,
+)
 from nanobanana_mcp_server.services.gemini_client import GeminiClient
 from nanobanana_mcp_server.core.exceptions import ADCConfigurationError
 
@@ -58,6 +63,20 @@ class TestAuthConfiguration:
                 config = ServerConfig.from_env()
                 assert config.gemini_base_url is None
 
+    def test_gemini_base_url_rejects_untrusted_host(self):
+        """Only Google API hosts are permitted for GEMINI_BASE_URL."""
+        with patch("nanobanana_mcp_server.config.settings.load_dotenv"):
+            with patch.dict(
+                os.environ,
+                {
+                    "GEMINI_API_KEY": "test-key",
+                    "GEMINI_BASE_URL": "https://evil.example.com/v1",
+                },
+                clear=True,
+            ):
+                with pytest.raises(ValueError, match="not allowed"):
+                    ServerConfig.from_env()
+
 
 class TestGeminiClientAuth:
     @patch("google.genai.Client")
@@ -94,10 +113,11 @@ class TestGeminiClientAuth:
     @patch("google.genai.Client")
     def test_api_key_client_creation_with_base_url_uses_http_options(self, mock_client_cls):
         """Custom base URL should be passed via http_options for API key auth."""
+        base = "https://generativelanguage.googleapis.com/v1beta?token=secret"
         config = ServerConfig(
             gemini_api_key="test-key",
             auth_method=AuthMethod.API_KEY,
-            gemini_base_url="https://proxy.example.com/v1beta?token=secret",
+            gemini_base_url=validate_gemini_base_url(base),
         )
         gemini_config = GeminiConfig()
         client = GeminiClient(config, gemini_config)
@@ -107,6 +127,8 @@ class TestGeminiClientAuth:
 
         mock_client_cls.assert_called_with(
             api_key="test-key",
-            http_options={"base_url": "https://proxy.example.com/v1beta?token=secret"},
+            http_options={"base_url": "https://generativelanguage.googleapis.com/v1beta?token=secret"},
         )
-        client.logger.info.assert_any_call("Using custom base URL: https://proxy.example.com")
+        client.logger.info.assert_any_call(
+            "Using custom base URL: https://generativelanguage.googleapis.com"
+        )

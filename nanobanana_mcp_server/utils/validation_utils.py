@@ -4,11 +4,116 @@ from typing import Any, List, Optional, Union
 from pathlib import Path
 import re
 import os
+import sys
 from urllib.parse import urlparse
 from ..core.exceptions import ValidationError
 
 # Supported image extensions for output path detection
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+
+# Extensions allowed for MCP tool input image paths (read from disk)
+INPUT_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff"}
+
+
+def _path_is_under_base(path: str, base: str) -> bool:
+    """Return True if path is the same as or inside base (after realpath resolution)."""
+    try:
+        rel = os.path.relpath(path, base)
+    except ValueError:
+        return False
+    return rel == "." or not rel.startswith("..")
+
+
+def _output_base_lexical_variants(base_real: str) -> list[str]:
+    """
+    On macOS, TemporaryDirectory and Path.resolve may disagree with abspath()
+    (/var/... vs /private/var/...). Accept both spellings when walking paths.
+    """
+    variants = [base_real]
+    if sys.platform == "darwin" and base_real.startswith("/private/"):
+        collapsed = "/" + base_real[len("/private/") :]
+        if collapsed not in variants:
+            variants.append(collapsed)
+    return variants
+
+
+def _raise_if_symlink_escapes_base(user_path: str, base_real: str) -> None:
+    """
+    Reject paths that traverse a symlink pointing outside ``base_real``.
+
+    ``realpath`` already catches many cases; this blocks symlink chains that could
+    confuse directory creation or bypass intent before components exist.
+    """
+    abs_u = os.path.abspath(os.path.expanduser(user_path))
+    rel: str | None = None
+    for cand in _output_base_lexical_variants(base_real):
+        if abs_u == cand or abs_u.startswith(cand + os.sep):
+            try:
+                rel = os.path.relpath(abs_u, cand)
+            except ValueError:
+                rel = None
+            break
+    if rel is None:
+        raise ValidationError(
+            f"output_path must be within the configured output directory: {base_real}"
+        )
+    if rel.startswith(".."):
+        raise ValidationError(
+            f"output_path must be within the configured output directory: {base_real}"
+        )
+
+    current = base_real
+    for part in Path(rel).parts:
+        if part in (".", ""):
+            continue
+        step = os.path.join(current, part)
+        if os.path.islink(step):
+            target = os.readlink(step)
+            tgt = os.path.join(os.path.dirname(step), target) if not os.path.isabs(target) else target
+            tgt_real = os.path.realpath(tgt)
+            if not _path_is_under_base(tgt_real, base_real):
+                raise ValidationError(
+                    "output_path must not pass through a symlink that leaves the output directory"
+                )
+        if os.path.lexists(step):
+            current = os.path.realpath(step)
+        else:
+            break
+
+
+def validate_input_image_path(path: str, allowed_base_dirs: list[str]) -> None:
+    """
+    Validate that an input image path is safe to read: exists, is a file, has an image
+    extension, and lies under one of the allowed base directories.
+    """
+    if not path or not str(path).strip():
+        raise ValidationError("Input image path cannot be empty")
+
+    expanded = os.path.expanduser(path)
+    resolved = os.path.realpath(expanded)
+
+    if not os.path.exists(resolved):
+        raise ValidationError(f"Input image not found: {path}")
+    if not os.path.isfile(resolved):
+        raise ValidationError(f"Input image is not a file: {path}")
+
+    ext = os.path.splitext(resolved)[1].lower()
+    if ext not in INPUT_IMAGE_EXTENSIONS:
+        raise ValidationError(
+            f"Input file does not have an allowed image extension ({ext!r}). "
+            f"Allowed: {', '.join(sorted(INPUT_IMAGE_EXTENSIONS))}"
+        )
+
+    bases = [os.path.realpath(d) for d in allowed_base_dirs if d and str(d).strip()]
+    if not bases:
+        raise ValidationError("Server misconfiguration: no allowed input image directories")
+
+    if not any(_path_is_under_base(resolved, b) for b in bases):
+        raise ValidationError(
+            "Input image must be under the configured output directory or "
+            "NANOBANANA_INPUT_IMAGE_DIRS. "
+            f"Resolved path: {resolved}"
+        )
 
 
 def validate_display_name(display_name: str) -> None:
@@ -329,12 +434,22 @@ def resolve_output_path(
     return str(resolved)
 
 
-def validate_output_path(output_path: str | None) -> None:
+def validate_output_path(
+    output_path: str | None,
+    allowed_base_dir: str | None = None,
+) -> None:
     """
     Validate output path for basic issues.
 
+    When ``allowed_base_dir`` is set (normal server operation), the resolved path must
+    lie inside that directory after symlink resolution (defense-in-depth).
+
+    When ``allowed_base_dir`` is None (e.g. isolated unit tests), an expanded system
+    path blocklist is applied instead.
+
     Args:
         output_path: User-provided output path
+        allowed_base_dir: Configured IMAGE_OUTPUT_DIR (absolute, resolved at startup)
 
     Raises:
         ValidationError: If the path is invalid
@@ -346,28 +461,58 @@ def validate_output_path(output_path: str | None) -> None:
     if not output_path.strip():
         raise ValidationError("output_path cannot be an empty string")
 
-    # Expand and resolve the path
+    # Expand and resolve the path (follows symlinks — final path must stay in sandbox)
     expanded = os.path.expanduser(output_path)
-    resolved = Path(expanded).resolve()
+    resolved = os.path.realpath(expanded)
 
-    # Check if parent directory exists or can be created
-    # We don't create it here, just validate it's not impossible
-    parent = resolved.parent
+    if allowed_base_dir:
+        base = os.path.realpath(os.path.expanduser(allowed_base_dir))
+        if not _path_is_under_base(resolved, base):
+            raise ValidationError(
+                f"output_path must be within the configured output directory: {base}"
+            )
+        _raise_if_symlink_escapes_base(expanded, base)
+        return
+
+    # Fallback blocklist when no base dir (unit tests)
+    parent = Path(resolved).parent
     if not parent.exists():
-        # Check if any ancestor exists (to verify the path is valid)
         current = parent
-        while current != current.parent:  # Stop at root
+        while current != current.parent:
             if current.exists():
                 break
             current = current.parent
-        else:
-            # We got to root without finding an existing ancestor
-            # This is actually fine - we'll create the directories
-            pass
 
-    # Check for obviously problematic paths
-    path_str = str(resolved).lower()
-    dangerous_paths = ["/bin", "/sbin", "/usr/bin", "/usr/sbin", "/etc", "/var/log"]
-    for dangerous in dangerous_paths:
-        if path_str.startswith(dangerous):
+    path_str = str(resolved)
+    dangerous_prefixes = [
+        "/bin",
+        "/sbin",
+        "/usr/bin",
+        "/usr/sbin",
+        "/etc",
+        "/var/log",
+        "/var/run",
+        "/dev",
+        "/proc",
+        "/sys",
+        "/boot",
+        "/lib",
+        "/lib64",
+    ]
+    ps = path_str.lower()
+    for dangerous in dangerous_prefixes:
+        if ps.startswith(dangerous):
             raise ValidationError(f"Cannot write to system directory: {dangerous}")
+
+    home = str(Path.home())
+    h = path_str.lower()
+    for rel in [".ssh", ".gnupg", os.path.join(".config", "systemd")]:
+        boundary = os.path.realpath(os.path.join(home, rel))
+        b = boundary.lower()
+        if h == b or h.startswith(b + os.sep):
+            raise ValidationError(f"Cannot write to sensitive path under home: {rel}")
+    for name in [".bashrc", ".bash_profile", ".zshrc", ".profile", ".gitconfig"]:
+        boundary = os.path.realpath(os.path.join(home, name))
+        b = boundary.lower()
+        if h == b or h.startswith(b + os.sep):
+            raise ValidationError(f"Cannot write to sensitive path: {name}")

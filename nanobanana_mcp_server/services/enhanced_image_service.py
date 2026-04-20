@@ -355,7 +355,7 @@ class EnhancedImageService:
         """
         # Step 3: M->>FS: save full-res image
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        image_hash = hashlib.md5(image_bytes).hexdigest()[:8]
+        image_hash = hashlib.sha256(image_bytes).hexdigest()[:8]
         default_filename = f"gen_{timestamp}_{response_index}_{image_index}_{image_hash}.{self.config.default_image_format}"
 
         # Resolve the output path using the utility function
@@ -465,7 +465,7 @@ class EnhancedImageService:
         """
         # Step 6: M->>FS: save new full-res image + new thumbnail
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        image_hash = hashlib.md5(image_bytes).hexdigest()[:8]
+        image_hash = hashlib.sha256(image_bytes).hexdigest()[:8]
         default_filename = (
             f"edit_{timestamp}_{edit_index}_{image_hash}.{self.config.default_image_format}"
         )

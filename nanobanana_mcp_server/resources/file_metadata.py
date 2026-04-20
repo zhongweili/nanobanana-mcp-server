@@ -2,6 +2,7 @@ from fastmcp import FastMCP
 from typing import Dict, Any
 from ..services import get_file_service
 from ..core.exceptions import FileOperationError, ValidationError
+from ..utils.client_errors import client_safe_message
 import logging
 
 
@@ -32,7 +33,15 @@ def register_file_metadata_resource(server: FastMCP):
             return {"error": "validation_error", "message": str(e), "name": name}
         except FileOperationError as e:
             logger.error(f"File operation error in file_metadata: {e}")
-            return {"error": "file_operation_error", "message": str(e), "name": name}
+            return {
+                "error": "file_operation_error",
+                "message": client_safe_message(str(e)),
+                "name": name,
+            }
         except Exception as e:
             logger.error(f"Unexpected error in file_metadata: {e}")
-            return {"error": "unexpected_error", "message": str(e), "name": name}
+            return {
+                "error": "unexpected_error",
+                "message": client_safe_message(str(e)),
+                "name": name,
+            }

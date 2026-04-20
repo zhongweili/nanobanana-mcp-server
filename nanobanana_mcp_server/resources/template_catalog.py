@@ -1,6 +1,7 @@
 from fastmcp import FastMCP
 from typing import Dict, Any
 from ..config.constants import TEMPLATE_CATEGORIES
+from ..utils.client_errors import client_safe_message
 import logging
 
 
@@ -86,4 +87,8 @@ def register_template_catalog_resource(server: FastMCP):
 
         except Exception as e:
             logger.error(f"Error generating template catalog: {e}")
-            return {"error": "catalog_generation_error", "message": str(e), "templates": {}}
+            return {
+                "error": "catalog_generation_error",
+                "message": client_safe_message(str(e)),
+                "templates": {},
+            }

@@ -6,13 +6,13 @@
     "url": "https://github.com/zhongweili/nanobanana-mcp-server",
     "source": "github"
   },
-  "version": "0.2.0",
+  "version": "0.4.4",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "nanobanana-mcp-server",
-      "version": "0.2.0",
+      "version": "0.4.4",
       "transport": {
         "type": "stdio"
       }

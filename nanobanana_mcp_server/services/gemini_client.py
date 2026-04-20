@@ -14,6 +14,7 @@ from ..config.settings import (
     NanoBanana2Config,
     ProImageConfig,
     ServerConfig,
+    validate_gemini_base_url,
 )
 from ..core.exceptions import AuthenticationError
 
@@ -38,8 +39,9 @@ class GeminiClient:
             # Build http_options for custom base URL if configured
             http_options = None
             if self.config.gemini_base_url:
-                http_options = {"base_url": self.config.gemini_base_url}
-                safe_url = self._get_safe_base_url_for_log(self.config.gemini_base_url)
+                validated_base = validate_gemini_base_url(self.config.gemini_base_url)
+                http_options = {"base_url": validated_base}
+                safe_url = self._get_safe_base_url_for_log(validated_base)
                 self.logger.info(f"Using custom base URL: {safe_url}")
 
             if self.config.auth_method == AuthMethod.API_KEY:
