@@ -76,7 +76,7 @@ Required environment variables:
 
 - `NANOBANANA_AUTH_METHOD=vertex_ai` (or `auto`)
 - `GCP_PROJECT_ID=your-project-id`
-- `GCP_REGION=us-central1` (default)
+- `GCP_REGION=global` (default; required for Gemini 3 Pro Image and NB2. Use `us-central1` only for the legacy 2.5 Flash Image model.)
 
 **Prerequisites**:
 
@@ -135,7 +135,7 @@ To authenticate with Google Cloud Application Default Credentials (instead of an
       "env": {
         "NANOBANANA_AUTH_METHOD": "vertex_ai",
         "GCP_PROJECT_ID": "your-project-id",
-        "GCP_REGION": "us-central1"
+        "GCP_REGION": "global"
       }
     }
   }
@@ -470,7 +470,7 @@ GEMINI_API_KEY=your-gemini-api-key-here
 # Method 2: Vertex AI (Google Cloud)
 NANOBANANA_AUTH_METHOD=vertex_ai
 GCP_PROJECT_ID=your-project-id
-GCP_REGION=us-central1
+GCP_REGION=global  # Required for gemini-3-pro-image-preview and NB2; use "us-central1" only for legacy 2.5 Flash Image
 
 # Model Selection (optional)
 NANOBANANA_MODEL=auto  # Options: flash, nb2, pro, auto (default: auto → nb2)

@@ -56,7 +56,7 @@ class ServerConfig:
     return_full_image: bool = False
     auth_method: AuthMethod = AuthMethod.AUTO
     gcp_project_id: str | None = None
-    gcp_region: str = "us-central1"
+    gcp_region: str = "global"
     gemini_base_url: str | None = None
 
     @classmethod
