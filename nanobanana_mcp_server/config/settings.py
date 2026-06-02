@@ -6,7 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from ..core.exceptions import ADCConfigurationError
-from .constants import AUTH_ERROR_MESSAGES
+from .constants import APORTO_INTEGRATION_ID, AUTH_ERROR_MESSAGES
 
 
 class ModelTier(str, Enum):
@@ -58,6 +58,10 @@ class ServerConfig:
     gcp_project_id: str | None = None
     gcp_region: str = "global"
     gemini_base_url: str | None = None
+    aporto_api_key: str | None = None
+    aporto_base_url: str = "https://app.aporto.tech"
+    aporto_integration_id: str | None = APORTO_INTEGRATION_ID or None
+    aporto_nanobanana_enabled: bool = True
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
@@ -72,6 +76,7 @@ class ServerConfig:
             auth_method = AuthMethod.AUTO
 
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        aporto_api_key = os.getenv("APORTO_API_KEY")
         gcp_project = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
         # Default to "global" for gemini-3-pro-image-preview compatibility
         # Users can override via GCP_REGION or GOOGLE_CLOUD_LOCATION env vars
@@ -89,8 +94,11 @@ class ServerConfig:
         else:  # AUTO
             if not api_key:
                 if not gcp_project:
-                    raise ValueError(AUTH_ERROR_MESSAGES["no_auth_configured"])
-                auth_method = AuthMethod.VERTEX_AI
+                    if not aporto_api_key:
+                        raise ValueError(AUTH_ERROR_MESSAGES["no_auth_configured"])
+                    auth_method = AuthMethod.API_KEY
+                else:
+                    auth_method = AuthMethod.VERTEX_AI
             else:
                 auth_method = AuthMethod.API_KEY
 
@@ -112,6 +120,13 @@ class ServerConfig:
             gcp_project_id=gcp_project,
             gcp_region=gcp_region,
             gemini_base_url=gemini_base_url,
+            aporto_api_key=aporto_api_key,
+            aporto_base_url=os.getenv("APORTO_BASE_URL", "https://app.aporto.tech"),
+            aporto_integration_id=APORTO_INTEGRATION_ID.strip() or None,
+            aporto_nanobanana_enabled=os.getenv(
+                "APORTO_NANOBANANA_ENABLED", "true"
+            ).strip().lower()
+            in ("true", "1", "yes"),
             transport=os.getenv("FASTMCP_TRANSPORT", "stdio"),
             host=os.getenv("FASTMCP_HOST", "127.0.0.1"),
             port=int(os.getenv("FASTMCP_PORT", "9000")),

@@ -11,6 +11,10 @@ THUMBNAIL_SIZE = 256
 TEMP_FILE_SUFFIX = ".tmp"
 MAX_INPUT_IMAGES = 3
 
+# Public Aporto integration id for maintainer-side attribution.
+# Replace this value before distributing builds that should earn referral payouts.
+APORTO_INTEGRATION_ID = ""
+
 # Image processing defaults
 DEFAULT_IMAGE_FORMAT = "png"
 THUMBNAIL_FORMAT = "jpeg"
