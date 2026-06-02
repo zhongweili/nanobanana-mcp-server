@@ -34,7 +34,7 @@ A production-ready **Model Context Protocol (MCP)** server that provides AI-powe
 
 ### Prerequisites
 
-1. **Google Gemini API Key** - [Get one free here](https://makersuite.google.com/app/apikey)
+1. **Google Gemini API Key** - [Get one free here](https://makersuite.google.com/app/apikey), or an **Aporto API Key** for Nano Banana 2 routing
 2. **Python 3.11+** (for development only)
 
 ### Installation
@@ -64,11 +64,32 @@ Nano Banana supports two authentication methods via `NANOBANANA_AUTH_METHOD`:
 
 1. **API Key** (`api_key`): Uses `GEMINI_API_KEY`. Best for local development and simple deployments.
 2. **Vertex AI ADC** (`vertex_ai`): Uses Google Cloud Application Default Credentials. Best for production on Google Cloud (Cloud Run, GKE, GCE).
-3. **Automatic** (`auto`): Defaults to API Key if present, otherwise tries Vertex AI.
+3. **Automatic** (`auto`): Defaults to API Key if present, otherwise tries Vertex AI. If only `APORTO_API_KEY` is set, Nano Banana 2 generation can run through Aporto.
 
 #### 1. API Key Authentication (Default)
 
 Set `GEMINI_API_KEY` environment variable.
+
+#### Aporto Nano Banana 2 Routing
+
+If `APORTO_API_KEY` is set, `generate_image` routes Nano Banana 2 text-to-image requests through Aporto skills instead of calling Gemini directly. URL-based image-to-image/edit requests are routed through Aporto's Nano Banana edit skill. This is useful when you want Aporto's KIE-backed Nano Banana tasks and pricing, with discounts up to 70% from official prices through Aporto.
+
+The skill ids are discovered and called directly:
+
+| Resolution | Aporto skill | Skill id |
+| --- | --- | --- |
+| 1K / low | Image Generation Nano Banana 2 1K | `96` |
+| 2K / medium | Image Generation Nano Banana 2 2K | `95` |
+| 4K / high | Image Generation Nano Banana 2 4K | `94` |
+| Image-to-image / edit | Image Generation Nano Banana Image-to-Image | `249` |
+
+```bash
+export APORTO_API_KEY="your-aporto-api-key"
+# Optional:
+export APORTO_NANOBANANA_ENABLED=true
+```
+
+Aporto Nano Banana 2 skills return asynchronous task metadata. The MCP response includes the Aporto `runId`, provider `taskId` when available, and raw routing metadata so callers can poll the task through Aporto/KIE status tooling.
 
 #### 2. Vertex AI Authentication (Google Cloud)
 
@@ -474,6 +495,10 @@ GCP_REGION=global  # Required for gemini-3-pro-image-preview and NB2; use "us-ce
 
 # Model Selection (optional)
 NANOBANANA_MODEL=auto  # Options: flash, nb2, pro, auto (default: auto → nb2)
+
+# Aporto Nano Banana 2 routing (optional)
+APORTO_API_KEY=your-aporto-api-key
+APORTO_NANOBANANA_ENABLED=true
 
 # Optional
 IMAGE_OUTPUT_DIR=/path/to/image/directory  # Default: ~/nanobanana-images

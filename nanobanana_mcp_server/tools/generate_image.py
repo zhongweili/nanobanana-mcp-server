@@ -3,6 +3,7 @@ import logging
 import mimetypes
 import os
 from typing import Annotated, Literal
+from urllib.parse import urlparse
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
@@ -13,6 +14,11 @@ from ..config.constants import MAX_INPUT_IMAGES
 from ..config.settings import ModelTier, ThinkingLevel
 from ..core.exceptions import ValidationError
 from ..utils.validation_utils import validate_output_path
+
+
+def _is_url(value: str) -> bool:
+    parsed = urlparse(value)
+    return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
 
 def register_generate_image_tool(server: FastMCP):
@@ -220,8 +226,16 @@ def register_generate_image_tool(server: FastMCP):
                 if len(input_image_paths) > MAX_INPUT_IMAGES:
                     raise ValidationError(f"Maximum {MAX_INPUT_IMAGES} input images allowed")
 
+                url_input_count = sum(1 for path in input_image_paths if _is_url(path))
+                if url_input_count and url_input_count != len(input_image_paths):
+                    raise ValidationError(
+                        "Input images must be either all local file paths or all HTTP(S) URLs"
+                    )
+
                 # Validate that all files exist
                 for i, path in enumerate(input_image_paths):
+                    if _is_url(path):
+                        continue
                     if not os.path.exists(path):
                         raise ValidationError(f"Input image {i + 1} not found: {path}")
                     if not os.path.isfile(path):
@@ -234,6 +248,104 @@ def register_generate_image_tool(server: FastMCP):
                 if file_id and input_image_paths and len(input_image_paths) > 1:
                     raise ValidationError(
                         "Edit mode with file_id supports only additional input images, not multiple primary inputs"
+                    )
+
+            aporto_url_inputs = (
+                input_image_paths
+                if input_image_paths and all(_is_url(path) for path in input_image_paths)
+                else None
+            )
+            should_route_aporto_text_to_image = (
+                detected_mode == "generate"
+                and selected_tier == ModelTier.NB2
+                and not input_image_paths
+            )
+            should_route_aporto_image_to_image = (
+                detected_mode in ("generate", "edit")
+                and bool(aporto_url_inputs)
+                and not file_id
+            )
+            if (
+                should_route_aporto_text_to_image
+                or should_route_aporto_image_to_image
+            ):
+                from ..services import get_aporto_routing_service, get_server_config
+
+                server_config = get_server_config()
+                aporto_service = get_aporto_routing_service()
+                if server_config.aporto_nanobanana_enabled and aporto_service:
+                    if aporto_url_inputs:
+                        aporto_results = aporto_service.run_nano_banana_image_to_image(
+                            prompt=prompt,
+                            image_urls=aporto_url_inputs,
+                            n=n,
+                            wait_for_result=False,
+                        )
+                    else:
+                        aporto_results = aporto_service.run_nano_banana_2(
+                            prompt=prompt,
+                            n=n,
+                            resolution=resolution,
+                            wait_for_result=False,
+                        )
+                    quality = aporto_results[0]["quality"] if aporto_results else "4k"
+                    action = "image-to-image" if aporto_url_inputs else "Nano Banana 2 image"
+                    summary_lines = [
+                        f"✅ Submitted {len(aporto_results)} {action} task(s) via Aporto.",
+                        f"📊 **Model**: NB2 tier via Aporto skill ({quality.upper()})",
+                        "",
+                        "📁 **Aporto Tasks:**",
+                    ]
+                    for i, result in enumerate(aporto_results, 1):
+                        task_id = result.get("task_id") or "pending provider task id"
+                        run_id = result.get("run_id") or "unknown run id"
+                        summary_lines.append(
+                            f"  {i}. skill `{result['skill_id']}` • run `{run_id}` • task `{task_id}`"
+                        )
+
+                    content = [TextContent(type="text", text="\n".join(summary_lines))]
+                    structured_content = {
+                        "mode": detected_mode,
+                        "provider": "aporto",
+                        "return_full_image": False,
+                        "model_tier": selected_tier.value,
+                        "model_name": model_info["name"],
+                        "model_id": model_info["model_id"],
+                        "requested_tier": model_tier,
+                        "auto_selected": tier == ModelTier.AUTO,
+                        "thinking_level": thinking_level,
+                        "resolution": resolution,
+                        "aporto_quality": quality,
+                        "grounding_enabled": False,
+                        "requested": n,
+                        "returned": 0,
+                        "negative_prompt_applied": bool(negative_prompt),
+                        "used_input_images": bool(aporto_url_inputs),
+                        "input_image_paths": aporto_url_inputs or [],
+                        "input_image_count": len(aporto_url_inputs or []),
+                        "aspect_ratio": aspect_ratio,
+                        "output_path": output_path,
+                        "source_file_id": file_id,
+                        "edit_instruction": prompt if detected_mode == "edit" else None,
+                        "generation_prompt": prompt if detected_mode == "generate" else None,
+                        "output_method": "aporto_async_task",
+                        "workflow": "aporto_routing_run",
+                        "aporto_runs": aporto_results,
+                        "aporto_run_ids": [r.get("run_id") for r in aporto_results],
+                        "aporto_task_ids": [r.get("task_id") for r in aporto_results],
+                        "images": [],
+                        "file_paths": [],
+                        "files_api_ids": [],
+                        "parent_relationships": [],
+                        "total_size_mb": 0,
+                    }
+                    logger.info(
+                        f"Submitted {len(aporto_results)} NB2 task(s) through Aporto routing"
+                    )
+                    return ToolResult(content=content, structured_content=structured_content)
+                if aporto_url_inputs:
+                    raise ValidationError(
+                        "HTTP(S) input image URLs require APORTO_API_KEY and APORTO_NANOBANANA_ENABLED=true"
                     )
 
             # Get enhanced image service (workflows.md + Files API + DB)

@@ -11,6 +11,7 @@ from ..config.settings import (
     ProImageConfig,
     ServerConfig,
 )
+from .aporto_routing_service import AportoRoutingService
 from .enhanced_image_service import EnhancedImageService
 from .file_image_service import FileImageService
 from .file_service import FileService
@@ -41,6 +42,7 @@ _pro_image_service: ProImageService | None = None
 _nb2_gemini_client: GeminiClient | None = None
 _nb2_image_service: ProImageService | None = None
 _model_selector: ModelSelector | None = None
+_aporto_routing_service: AportoRoutingService | None = None
 
 
 def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig):
@@ -60,6 +62,7 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
         _nb2_gemini_client, \
         _nb2_image_service, \
         _model_selector, \
+        _aporto_routing_service, \
         _server_config
 
     _server_config = server_config
@@ -105,6 +108,14 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
         _nb2_image_service,  # NB2 service
         selection_config,
     )
+
+    if server_config.aporto_api_key:
+        _aporto_routing_service = AportoRoutingService(
+            server_config.aporto_api_key,
+            server_config.aporto_base_url,
+        )
+    else:
+        _aporto_routing_service = None
 
 
 def get_image_service() -> FileImageService:
@@ -196,3 +207,8 @@ def get_server_config() -> ServerConfig:
     if _server_config is None:
         raise RuntimeError("Services not initialized. Call initialize_services() first.")
     return _server_config
+
+
+def get_aporto_routing_service() -> AportoRoutingService | None:
+    """Get the Aporto routing service if configured."""
+    return _aporto_routing_service
