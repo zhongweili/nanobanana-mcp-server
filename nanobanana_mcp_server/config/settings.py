@@ -6,7 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from ..core.exceptions import ADCConfigurationError
-from .constants import AUTH_ERROR_MESSAGES
+from .constants import APORTO_INTEGRATION_ID, AUTH_ERROR_MESSAGES
 
 
 class ModelTier(str, Enum):
@@ -60,7 +60,7 @@ class ServerConfig:
     gemini_base_url: str | None = None
     aporto_api_key: str | None = None
     aporto_base_url: str = "https://app.aporto.tech"
-    aporto_integration_id: str | None = None
+    aporto_integration_id: str | None = APORTO_INTEGRATION_ID or None
     aporto_nanobanana_enabled: bool = True
 
     @classmethod
@@ -122,7 +122,7 @@ class ServerConfig:
             gemini_base_url=gemini_base_url,
             aporto_api_key=aporto_api_key,
             aporto_base_url=os.getenv("APORTO_BASE_URL", "https://app.aporto.tech"),
-            aporto_integration_id=os.getenv("APORTO_INTEGRATION_ID", "").strip() or None,
+            aporto_integration_id=APORTO_INTEGRATION_ID.strip() or None,
             aporto_nanobanana_enabled=os.getenv(
                 "APORTO_NANOBANANA_ENABLED", "true"
             ).strip().lower()
