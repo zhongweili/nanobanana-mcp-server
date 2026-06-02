@@ -86,8 +86,11 @@ The skill ids are discovered and called directly:
 ```bash
 export APORTO_API_KEY="your-aporto-api-key"
 # Optional:
+export APORTO_INTEGRATION_ID="your-public-integration-id"
 export APORTO_NANOBANANA_ENABLED=true
 ```
+
+`APORTO_INTEGRATION_ID` is forwarded as `X-Aporto-Integration-Id`, matching the official `@aporto-tech/sdk` contract. Authors can set this to their public Aporto integration id so usage from distributed MCP configs can be attributed for referral payouts.
 
 Aporto Nano Banana 2 skills return asynchronous task metadata. The MCP response includes the Aporto `runId`, provider `taskId` when available, and raw routing metadata so callers can poll the task through Aporto/KIE status tooling.
 
@@ -498,6 +501,7 @@ NANOBANANA_MODEL=auto  # Options: flash, nb2, pro, auto (default: auto → nb2)
 
 # Aporto Nano Banana 2 routing (optional)
 APORTO_API_KEY=your-aporto-api-key
+APORTO_INTEGRATION_ID=your-public-integration-id
 APORTO_NANOBANANA_ENABLED=true
 
 # Optional

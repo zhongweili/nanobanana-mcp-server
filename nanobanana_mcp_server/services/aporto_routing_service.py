@@ -28,9 +28,15 @@ NANO_BANANA_IMAGE_TO_IMAGE_SKILL_NAME = "Image Generation Nano Banana Image-to-I
 class AportoRoutingService:
     """Minimal client for Aporto's routing API."""
 
-    def __init__(self, api_key: str, base_url: str = "https://app.aporto.tech"):
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str = "https://app.aporto.tech",
+        integration_id: str | None = None,
+    ):
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
+        self.integration_id = integration_id.strip() if integration_id else None
         parsed = urlparse(self.base_url)
         if parsed.scheme not in ("http", "https") or not parsed.netloc:
             raise ValueError("Aporto base URL must be an HTTP(S) URL")
@@ -73,6 +79,7 @@ class AportoRoutingService:
                     "run_id": response.get("runId"),
                     "status": response.get("status"),
                     "task_id": self._find_first_key(response, ("taskId", "task_id", "taskID")),
+                    "integration_id": self.integration_id,
                     "artifact_urls": self._extract_urls(response),
                     "raw_response": response,
                 }
@@ -115,6 +122,7 @@ class AportoRoutingService:
                     "run_id": response.get("runId"),
                     "status": response.get("status"),
                     "task_id": self._find_first_key(response, ("taskId", "task_id", "taskID")),
+                    "integration_id": self.integration_id,
                     "artifact_urls": self._extract_urls(response),
                     "raw_response": response,
                 }
@@ -134,14 +142,18 @@ class AportoRoutingService:
 
     def _post_json(self, path: str, body: dict[str, Any]) -> dict[str, Any]:
         payload = json.dumps(body).encode("utf-8")
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "X-Agent-Name": "nanobanana-mcp-server",
+        }
+        if self.integration_id:
+            headers["X-Aporto-Integration-Id"] = self.integration_id
+
         req = request.Request(  # noqa: S310
             f"{self.base_url}{path}",
             data=payload,
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-                "X-Agent-Name": "nanobanana-mcp-server",
-            },
+            headers=headers,
             method="POST",
         )
         try:

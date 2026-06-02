@@ -45,7 +45,7 @@ def test_resolve_quality_rejects_unknown_resolution():
 
 
 def test_run_nano_banana_2_uses_direct_skill_id_and_extracts_task_id():
-    service = AportoRoutingService("test-key")
+    service = AportoRoutingService("test-key", integration_id="int_author_123")
     response = {
         "status": "running",
         "runId": "run_123",
@@ -62,6 +62,7 @@ def test_run_nano_banana_2_uses_direct_skill_id_and_extracts_task_id():
     assert body["waitForResult"] is False
     assert results[0]["run_id"] == "run_123"
     assert results[0]["task_id"] == "task_456"
+    assert results[0]["integration_id"] == "int_author_123"
 
 
 def test_run_nano_banana_image_to_image_uses_direct_skill_id_and_image_urls():
@@ -93,11 +94,27 @@ def test_run_nano_banana_image_to_image_uses_direct_skill_id_and_image_urls():
 def test_server_config_allows_aporto_only_auth():
     with patch("nanobanana_mcp_server.config.settings.load_dotenv"), patch.dict(
         os.environ,
-        {"APORTO_API_KEY": "aporto-test-key"},
+        {
+            "APORTO_API_KEY": "aporto-test-key",
+            "APORTO_INTEGRATION_ID": "int_author_123",
+        },
         clear=True,
     ):
         config = ServerConfig.from_env()
 
     assert config.gemini_api_key is None
     assert config.aporto_api_key == "aporto-test-key"
+    assert config.aporto_integration_id == "int_author_123"
     assert config.aporto_nanobanana_enabled is True
+
+
+def test_post_json_sends_aporto_integration_id_header():
+    service = AportoRoutingService("test-key", integration_id=" int_author_123 ")
+
+    with patch("nanobanana_mcp_server.services.aporto_routing_service.request.urlopen") as urlopen:
+        urlopen.return_value.__enter__.return_value.read.return_value = b'{"status":"running"}'
+
+        service._post_json("/api/routing/run", {"intent": "generate image"})
+
+    req = urlopen.call_args.args[0]
+    assert req.get_header("X-aporto-integration-id") == "int_author_123"

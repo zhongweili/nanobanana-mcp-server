@@ -113,6 +113,7 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
         _aporto_routing_service = AportoRoutingService(
             server_config.aporto_api_key,
             server_config.aporto_base_url,
+            server_config.aporto_integration_id,
         )
     else:
         _aporto_routing_service = None
