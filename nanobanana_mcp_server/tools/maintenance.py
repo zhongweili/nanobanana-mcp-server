@@ -11,7 +11,7 @@ Provides tools for:
 from typing import Annotated, Optional
 from pydantic import Field
 from fastmcp import FastMCP, Context
-from fastmcp.tools.tool import ToolResult
+from fastmcp.tools import ToolResult
 from mcp.types import TextContent
 from ..core.exceptions import ValidationError
 import logging
