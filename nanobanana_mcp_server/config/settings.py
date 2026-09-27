@@ -221,6 +221,21 @@ class ModelSelectionConfig:
         return cls(default_tier=default_tier)
 
 
+def describe_default_model(tier: ModelTier) -> str:
+    """One-line description of the configured default model behavior."""
+    names = {
+        ModelTier.FLASH: FlashImageConfig().model_name,
+        ModelTier.PRO: ProImageConfig().model_name,
+        ModelTier.NB2: NanoBanana2Config().model_name,
+    }
+    if tier == ModelTier.AUTO:
+        return (
+            f"auto (defaults to {names[ModelTier.NB2]}; "
+            "Pro when a request scores higher for quality)"
+        )
+    return f"{tier.value} ({names[tier]})"
+
+
 @dataclass
 class GeminiConfig:
     """Legacy Gemini API configuration (backward compatibility)."""

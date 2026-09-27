@@ -2,18 +2,24 @@
 """
 Nano Banana MCP Server - Main Entry Point
 
-A production-ready FastMCP server that provides AI-powered image generation and editing
-capabilities through Google's Gemini 2.5 Flash Image model.
+A production-ready FastMCP server for AI image generation and editing with
+Gemini 3.1 Flash Image (Nano Banana 2), Gemini 3 Pro Image, and Gemini 2.5 Flash Image.
 """
 
-import sys
-import os
-from .config.settings import ServerConfig, GeminiConfig
-from .core.server import NanoBananaMCP
-from .core.exceptions import ConfigurationError
-from .utils.logging_utils import setup_logging
-from . import services
 import logging
+import os
+import sys
+
+from . import services
+from .config.settings import (
+    GeminiConfig,
+    ModelSelectionConfig,
+    ServerConfig,
+    describe_default_model,
+)
+from .core.exceptions import ConfigurationError
+from .core.server import NanoBananaMCP
+from .utils.logging_utils import setup_logging
 
 
 def create_app():
@@ -38,7 +44,9 @@ def create_app():
         gemini_config = GeminiConfig()
 
         logger.info(f"Server transport: {server_config.transport}")
-        logger.info(f"Gemini model: {gemini_config.model_name}")
+        logger.info(
+            f"Default model: {describe_default_model(ModelSelectionConfig.from_env().default_tier)}"
+        )
 
         # Initialize services first
         services.initialize_services(server_config, gemini_config)
@@ -79,7 +87,9 @@ def create_wrapper_app() -> NanoBananaMCP:
         gemini_config = GeminiConfig()
 
         logger.info(f"Server transport: {server_config.transport}")
-        logger.info(f"Gemini model: {gemini_config.model_name}")
+        logger.info(
+            f"Default model: {describe_default_model(ModelSelectionConfig.from_env().default_tier)}"
+        )
 
         # Initialize services first
         services.initialize_services(server_config, gemini_config)

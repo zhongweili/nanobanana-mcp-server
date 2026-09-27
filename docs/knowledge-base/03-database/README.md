@@ -16,7 +16,8 @@ File: `nanobanana_mcp_server/services/image_storage_service.py`
 | Input | Behavior |
 |-------|---------|
 | `/path/to/image.png` (file path) | Save directly to this path |
-| `/path/to/dir/` (directory path) | Auto-generate filename in directory |
+| `images/sunset.png` (relative path) | Resolved from the server working directory, not `IMAGE_OUTPUT_DIR` |
+| `/path/to/dir/` (directory path) | Auto-generate filename in directory. A trailing slash selects this mode even if the directory does not exist yet |
 | `None` | Use `IMAGE_OUTPUT_DIR` or `~/nanobanana-images` |
 
 ## 2. Image Metadata Database (`ImageDatabaseService`)

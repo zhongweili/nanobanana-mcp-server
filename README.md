@@ -442,6 +442,8 @@ When generating multiple images with a file path, images are automatically numbe
 2. `IMAGE_OUTPUT_DIR` environment variable
 3. `~/nanobanana-images` (default fallback)
 
+`IMAGE_OUTPUT_DIR` is used only when `output_path` is omitted. A relative `output_path` such as `images/sunset.png` is resolved from the server process working directory, not from `IMAGE_OUTPUT_DIR`. `~/...` expands to the home directory. A trailing slash selects directory mode even when that directory does not exist yet (`outputs/`), and the server creates it and generates the filename.
+
 ```python
 # Save to specific location with Pro model
 generate_image(
