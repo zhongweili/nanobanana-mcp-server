@@ -12,7 +12,7 @@ from pydantic import Field
 from ..config.constants import MAX_INPUT_IMAGES
 from ..config.settings import ModelTier, ThinkingLevel
 from ..core.exceptions import ValidationError
-from ..utils.validation_utils import validate_output_path
+from ..utils.validation_utils import validate_input_image_path, validate_output_path
 
 
 def register_generate_image_tool(server: FastMCP):
@@ -48,15 +48,15 @@ def register_generate_image_tool(server: FastMCP):
         ] = None,
         input_image_path_1: Annotated[
             str | None,
-            Field(description="Path to first input image for composition/conditioning"),
+            Field(description="Path to the first input image (png, jpg, jpeg, webp, or gif)."),
         ] = None,
         input_image_path_2: Annotated[
             str | None,
-            Field(description="Path to second input image for composition/conditioning"),
+            Field(description="Path to the second input image (png, jpg, jpeg, webp, or gif)."),
         ] = None,
         input_image_path_3: Annotated[
             str | None,
-            Field(description="Path to third input image for composition/conditioning"),
+            Field(description="Path to the third input image (png, jpg, jpeg, webp, or gif)."),
         ] = None,
         file_id: Annotated[
             str | None,
@@ -104,9 +104,22 @@ def register_generate_image_tool(server: FastMCP):
         ] = True,
         aspect_ratio: Annotated[
             Literal[
-                "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9",
-                "4:1", "1:4", "8:1", "1:8",
-            ] | None,
+                "1:1",
+                "2:3",
+                "3:2",
+                "3:4",
+                "4:3",
+                "4:5",
+                "5:4",
+                "9:16",
+                "16:9",
+                "21:9",
+                "4:1",
+                "1:4",
+                "8:1",
+                "1:8",
+            ]
+            | None,
             Field(
                 description="Optional output aspect ratio (e.g., '16:9'). "
                 "Standard: 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9. "
@@ -220,12 +233,10 @@ def register_generate_image_tool(server: FastMCP):
                 if len(input_image_paths) > MAX_INPUT_IMAGES:
                     raise ValidationError(f"Maximum {MAX_INPUT_IMAGES} input images allowed")
 
-                # Validate that all files exist
+                resolved_paths = []
                 for i, path in enumerate(input_image_paths):
-                    if not os.path.exists(path):
-                        raise ValidationError(f"Input image {i + 1} not found: {path}")
-                    if not os.path.isfile(path):
-                        raise ValidationError(f"Input image {i + 1} is not a file: {path}")
+                    resolved_paths.append(str(validate_input_image_path(path, index=i + 1)))
+                input_image_paths = resolved_paths
 
             # Mode-specific validation
             if detected_mode == "edit":
@@ -411,10 +422,9 @@ def register_generate_image_tool(server: FastMCP):
                 try:
                     effective_return_full_image = get_server_config().return_full_image
                 except RuntimeError:
-                    effective_return_full_image = (
-                        os.getenv("RETURN_FULL_IMAGE", "false").strip().lower()
-                        in ("true", "1", "yes")
-                    )
+                    effective_return_full_image = os.getenv(
+                        "RETURN_FULL_IMAGE", "false"
+                    ).strip().lower() in ("true", "1", "yes")
 
             # Create response with file paths and thumbnails
             if metadata:
@@ -562,7 +572,9 @@ def register_generate_image_tool(server: FastMCP):
                 "auto_selected": tier == ModelTier.AUTO,
                 "thinking_level": thinking_level if selected_tier == ModelTier.NB2 else None,
                 "resolution": resolution,
-                "grounding_enabled": enable_grounding if selected_tier in (ModelTier.PRO, ModelTier.NB2) else False,
+                "grounding_enabled": enable_grounding
+                if selected_tier in (ModelTier.PRO, ModelTier.NB2)
+                else False,
                 "requested": n,
                 "returned": len(thumbnail_images),
                 "negative_prompt_applied": bool(negative_prompt),

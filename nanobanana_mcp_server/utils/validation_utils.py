@@ -1,10 +1,11 @@
 """Additional validation utilities beyond core validation."""
 
-from typing import Any, List, Optional, Union
+import os
 from pathlib import Path
 import re
-import os
+from typing import Any
 from urllib.parse import urlparse
+
 from ..core.exceptions import ValidationError
 
 # Supported image extensions for output path detection
@@ -27,7 +28,7 @@ def validate_display_name(display_name: str) -> None:
 
 
 def validate_positive_integer(
-    value: Any, name: str, min_value: int = 1, max_value: Optional[int] = None
+    value: Any, name: str, min_value: int = 1, max_value: int | None = None
 ) -> None:
     """Validate that a value is a positive integer within bounds."""
     if not isinstance(value, int):
@@ -41,7 +42,7 @@ def validate_positive_integer(
 
 
 def validate_string_length(
-    value: str, name: str, min_length: int = 0, max_length: Optional[int] = None
+    value: str, name: str, min_length: int = 0, max_length: int | None = None
 ) -> None:
     """Validate string length."""
     if not isinstance(value, str):
@@ -61,7 +62,7 @@ def validate_email(email: str) -> None:
         raise ValidationError("Invalid email address format")
 
 
-def validate_url(url: str, allowed_schemes: Optional[List[str]] = None) -> None:
+def validate_url(url: str, allowed_schemes: list[str] | None = None) -> None:
     """Validate URL format and scheme."""
     try:
         parsed = urlparse(url)
@@ -75,7 +76,33 @@ def validate_url(url: str, allowed_schemes: Optional[List[str]] = None) -> None:
         raise ValidationError(f"Invalid URL: {e}")
 
 
-def validate_file_extension(filename: str, allowed_extensions: List[str]) -> None:
+def validate_input_image_path(path: str, index: int | None = None) -> Path:
+    """Return the resolved path of a supported input image.
+
+    Accepts absolute paths, home-relative paths, and symlinks to image files.
+    Both the requested name and the resolved file must use an extension in
+    ``IMAGE_EXTENSIONS``, so a non-image cannot be read by renaming or linking it.
+    """
+    label = f"Input image {index}" if index is not None else "Input image"
+    if not path or not str(path).strip():
+        raise ValidationError(f"{label} path cannot be empty")
+
+    requested = Path(os.path.expanduser(path))
+    resolved = requested.resolve()
+    allowed = ", ".join(sorted(IMAGE_EXTENSIONS))
+    if not resolved.exists():
+        raise ValidationError(f"{label} not found: {path}")
+    if not resolved.is_file():
+        raise ValidationError(f"{label} is not a file: {path}")
+    if (
+        requested.suffix.lower() not in IMAGE_EXTENSIONS
+        or resolved.suffix.lower() not in IMAGE_EXTENSIONS
+    ):
+        raise ValidationError(f"{label} must be an image file ({allowed}): {path}")
+    return resolved
+
+
+def validate_file_extension(filename: str, allowed_extensions: list[str]) -> None:
     """Validate file extension."""
     if not filename:
         raise ValidationError("Filename cannot be empty")
@@ -86,7 +113,7 @@ def validate_file_extension(filename: str, allowed_extensions: List[str]) -> Non
 
 
 def validate_json_structure(
-    data: Any, required_fields: List[str], optional_fields: Optional[List[str]] = None
+    data: Any, required_fields: list[str], optional_fields: list[str] | None = None
 ) -> None:
     """Validate JSON structure has required fields."""
     if not isinstance(data, dict):
@@ -150,7 +177,7 @@ def sanitize_filename(filename: str) -> str:
     return filename
 
 
-def validate_content_type(content_type: str, allowed_types: List[str]) -> None:
+def validate_content_type(content_type: str, allowed_types: list[str]) -> None:
     """Validate content type against allowed types."""
     if not content_type:
         raise ValidationError("Content type cannot be empty")
@@ -195,7 +222,7 @@ def validate_search_query(query: str, min_length: int = 1, max_length: int = 100
 
 
 def validate_timeout_seconds(
-    timeout: Union[int, float], min_timeout: float = 0.1, max_timeout: float = 300.0
+    timeout: int | float, min_timeout: float = 0.1, max_timeout: float = 300.0
 ) -> None:
     """Validate timeout value in seconds."""
     if not isinstance(timeout, (int, float)):
