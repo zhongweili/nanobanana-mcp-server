@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.6] - 2026-09-27
+
+### Fixed
+- **Fresh installs**: Cap `fastmcp` at `>=2.11.0,<3`. FastMCP 4 removes `fastmcp.tools.tool`, so an unbounded `>=2.11.0` resolved 4.x and crashed on startup.
+- **Startup log**: Report the configured `NANOBANANA_MODEL` instead of always logging `gemini-2.5-flash-image`.
+- **Input images**: `input_image_path_*` and path-based edits only read png, jpg, jpeg, webp, or gif. Symlinks are resolved and must point at a supported image too.
+
+### Changed
+- Document that a relative `output_path` resolves from the server working directory. `IMAGE_OUTPUT_DIR` is used only when `output_path` is omitted.
+
+## [0.4.5] - 2026-05-18
+
+### Fixed
+- **Vertex AI hang**: Configure request timeouts (60s for Flash/NB2, 90s for Pro) so an unresponsive endpoint returns an error instead of waiting forever (#31, #32).
+
+### Changed
+- Document `GCP_REGION=global` as the Vertex default for current image models (#28, #30).
+
 ## [0.4.4] - 2026-03-27
 
 ### Fixed
@@ -86,6 +104,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test coverage
 - MIT License
 
+[0.4.6]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.4.5...v0.4.6
+[0.4.5]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.4.3...v0.4.4
 [0.3.3]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.3.1...v0.3.2
