@@ -22,7 +22,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastmcp>=2.11.0",
+    "fastmcp>=2.11.0,<3",
     "google-genai>=1.57.0",
     "pillow>=10.4.0",
     "python-dotenv>=1.0.1",
@@ -31,7 +31,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "fastmcp>=2.11.0",
+    "fastmcp>=2.11.0,<3",
     "ruff>=0.1.0",
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
