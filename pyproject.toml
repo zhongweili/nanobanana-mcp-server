@@ -26,7 +26,10 @@ dependencies = [
     "google-genai>=1.57.0",
     "pillow>=10.4.0",
     "python-dotenv>=1.0.1",
-    "pydantic>=2.0.0",
+    "pydantic>=2.0.0; python_version < '3.15'",
+    "pydantic>=2.14.0b2; python_version >= '3.15'",
+    # beartype 0.22.9 imports typing.no_type_check_decorator, removed in 3.15.
+    "beartype>=0.23.0rc2; python_version >= '3.15'",
 ]
 
 [project.optional-dependencies]

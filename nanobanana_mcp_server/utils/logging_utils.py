@@ -2,7 +2,7 @@ import logging
 import sys
 from typing import Optional
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def setup_logging(level: str = "INFO", format_type: str = "standard") -> None:
@@ -54,7 +54,7 @@ class JSONFormatter(logging.Formatter):
         """Format log record as JSON."""
 
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
