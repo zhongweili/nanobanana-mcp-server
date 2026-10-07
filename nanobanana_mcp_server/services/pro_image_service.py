@@ -35,7 +35,7 @@ class ProImageService:
         self.logger = logging.getLogger(__name__)
         self._tier_label = (
             "nb2"
-            if config.model_name.strip().lower() == "gemini-3.1-flash-image-preview"
+            if config.model_name.strip().lower() == "gemini-nano-banana-2.1"
             else "pro"
         )
 

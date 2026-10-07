@@ -181,7 +181,7 @@ class ModelSelector:
             return {
                 "tier": "pro",
                 "name": "Gemini 3 Pro Image",
-                "model_id": "gemini-3-pro-image-preview",
+                "model_id": "gemini-3-pro-image",
                 "max_resolution": "4K (3840px)",
                 "features": [
                     "4K resolution",
@@ -195,8 +195,8 @@ class ModelSelector:
         elif tier == ModelTier.NB2:
             return {
                 "tier": "nb2",
-                "name": "Gemini 3.1 Flash Image",
-                "model_id": "gemini-3.1-flash-image-preview",
+                "name": "Nano Banana 2.1",
+                "model_id": "gemini-nano-banana-2.1",
                 "max_resolution": "4K (3840px)",
                 "features": [
                     "Flash-speed generation",

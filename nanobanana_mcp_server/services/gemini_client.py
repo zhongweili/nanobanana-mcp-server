@@ -242,13 +242,13 @@ class GeminiClient:
                     thinking_level=gx.ThinkingLevel[config["thinking_level"].upper()]
                 )
 
-        # Pro-specific parameters - thinking_level is NOT supported by gemini-3-pro-image-preview
+        # Pro-specific parameters - thinking_level is NOT supported by gemini-3-pro-image
         elif isinstance(self.gemini_config, ProImageConfig):
             # Resolution is handled via ImageConfig.image_size, not here
             # Grounding is controlled via prompt/system instructions
             if "thinking_level" in config:
                 self.logger.info(
-                    "Note: thinking_level is not supported by gemini-3-pro-image-preview, ignoring"
+                    "Note: thinking_level is not supported by gemini-3-pro-image, ignoring"
                 )
 
         else:
