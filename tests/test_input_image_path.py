@@ -76,7 +76,7 @@ def test_generate_image_rejects_non_image_before_reading(monkeypatch, tmp_path):
             return {
                 "tier": tier.value,
                 "name": "Gemini 3.1 Flash Image",
-                "model_id": "gemini-3.1-flash-image-preview",
+                "model_id": "gemini-nano-banana-2.1",
                 "emoji": "🍌",
             }
 

@@ -73,7 +73,7 @@ class ServerConfig:
 
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         gcp_project = os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
-        # Default to "global" for gemini-3-pro-image-preview compatibility
+        # Default to "global" for gemini-3-pro-image compatibility
         # Users can override via GCP_REGION or GOOGLE_CLOUD_LOCATION env vars
         gcp_region = os.getenv("GCP_REGION") or os.getenv("GOOGLE_CLOUD_LOCATION") or "global"
 
@@ -147,7 +147,7 @@ class FlashImageConfig(BaseModelConfig):
 class ProImageConfig(BaseModelConfig):
     """Gemini 3 Pro Image configuration (quality-optimized)."""
 
-    model_name: str = "gemini-3-pro-image-preview"
+    model_name: str = "gemini-3-pro-image"
     max_resolution: int = 3840  # 4K
     default_resolution: str = "high"  # low/medium/high
     default_thinking_level: ThinkingLevel = ThinkingLevel.HIGH
@@ -162,9 +162,9 @@ class ProImageConfig(BaseModelConfig):
 
 @dataclass
 class NanoBanana2Config(ProImageConfig):
-    """Gemini 3.1 Flash Image configuration (Flash speed + Pro quality)."""
+    """Nano Banana 2.1 configuration (Flash speed + Pro quality)."""
 
-    model_name: str = "gemini-3.1-flash-image-preview"
+    model_name: str = "gemini-nano-banana-2.1"
     request_timeout: int = 60  # Flash-speed model
     supports_thinking: bool = True  # Supports Minimal/High/Dynamic thinking
     supports_extreme_aspect_ratios: bool = True  # 4:1, 1:4, 8:1, 1:8

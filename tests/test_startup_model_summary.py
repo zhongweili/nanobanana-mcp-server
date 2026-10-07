@@ -14,8 +14,8 @@ from nanobanana_mcp_server.config.settings import (
     ("tier", "model_name"),
     [
         (ModelTier.FLASH, "gemini-2.5-flash-image"),
-        (ModelTier.NB2, "gemini-3.1-flash-image-preview"),
-        (ModelTier.PRO, "gemini-3-pro-image-preview"),
+        (ModelTier.NB2, "gemini-nano-banana-2.1"),
+        (ModelTier.PRO, "gemini-3-pro-image"),
     ],
 )
 def test_explicit_tier_names_its_model(tier: ModelTier, model_name: str):
@@ -30,7 +30,7 @@ def test_auto_defaults_to_nb2_and_mentions_pro():
     summary = describe_default_model(ModelTier.AUTO)
 
     assert summary.startswith("auto (")
-    assert "gemini-3.1-flash-image-preview" in summary
+    assert "gemini-nano-banana-2.1" in summary
     assert "Pro" in summary
     assert "gemini-2.5-flash-image" not in summary
 

@@ -2,9 +2,9 @@
 
 A production-ready **Model Context Protocol (MCP)** server that provides AI-powered image generation capabilities through Google's **Gemini** models with intelligent model selection.
 
-## ⭐ NEW: Nano Banana 2 — Gemini 3.1 Flash Image! 🍌🚀
+## ⭐ NEW: Nano Banana 2.1! 🍌🚀
 
-**Nano Banana 2** (`gemini-3.1-flash-image-preview`) is now the **default model** — delivering Pro-level quality at Flash speed:
+**Nano Banana 2.1** (`gemini-nano-banana-2.1`) is now the **default model** — delivering Pro-level quality at Flash speed:
 
 - 🍌 **Flash Speed + 4K Quality**: Up to 3840px at Gemini 2.5 Flash latency
 - 🌐 **Google Search Grounding**: Real-world knowledge for factually accurate images
@@ -472,7 +472,7 @@ GEMINI_API_KEY=your-gemini-api-key-here
 # Method 2: Vertex AI (Google Cloud)
 NANOBANANA_AUTH_METHOD=vertex_ai
 GCP_PROJECT_ID=your-project-id
-GCP_REGION=global  # Required for gemini-3-pro-image-preview and NB2; use "us-central1" only for legacy 2.5 Flash Image
+GCP_REGION=global  # Required for gemini-3-pro-image and Nano Banana 2.1; use "us-central1" only for legacy 2.5 Flash Image
 
 # Model Selection (optional)
 NANOBANANA_MODEL=auto  # Options: flash, nb2, pro, auto (default: auto → nb2)

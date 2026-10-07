@@ -107,7 +107,7 @@ def test_edit_mode_pro_routes_to_selected_service_for_path(monkeypatch, tmp_path
     model_selector = _FakeModelSelector(
         selected_service=pro_service,
         selected_tier=ModelTier.PRO,
-        model_id="gemini-3-pro-image-preview",
+        model_id="gemini-3-pro-image",
         name="Gemini 3 Pro Image",
     )
 
@@ -131,7 +131,7 @@ def test_edit_mode_pro_routes_to_selected_service_for_path(monkeypatch, tmp_path
     assert pro_service.calls[0][0] == "edit"
     assert pro_service.calls[0][1]["output_path"] == str(out)
     assert result.structured_content["model_tier"] == "pro"
-    assert result.structured_content["model_id"] == "gemini-3-pro-image-preview"
+    assert result.structured_content["model_id"] == "gemini-3-pro-image"
 
 
 @pytest.mark.unit
@@ -145,7 +145,7 @@ def test_edit_mode_nb2_routes_to_selected_service_for_file_id(monkeypatch, tmp_p
     model_selector = _FakeModelSelector(
         selected_service=nb2_service,
         selected_tier=ModelTier.NB2,
-        model_id="gemini-3.1-flash-image-preview",
+        model_id="gemini-nano-banana-2.1",
         name="Gemini 3.1 Flash Image",
     )
     files_api = _FakeFilesAPIService()
@@ -177,7 +177,7 @@ def test_edit_mode_nb2_routes_to_selected_service_for_file_id(monkeypatch, tmp_p
     assert nb2_service.calls[0][1]["output_path"].startswith(str(out_dir))
     assert nb2_service.calls[0][1]["thinking_level"].value == "high"
     assert result.structured_content["model_tier"] == "nb2"
-    assert result.structured_content["model_id"] == "gemini-3.1-flash-image-preview"
+    assert result.structured_content["model_id"] == "gemini-nano-banana-2.1"
     assert result.structured_content["thinking_level"] == "high"
 
 
@@ -230,7 +230,7 @@ def test_generate_mode_nb2_routes_thinking_and_extreme_aspect_ratio(monkeypatch,
     model_selector = _FakeModelSelector(
         selected_service=nb2_service,
         selected_tier=ModelTier.NB2,
-        model_id="gemini-3.1-flash-image-preview",
+        model_id="gemini-nano-banana-2.1",
         name="Gemini 3.1 Flash Image",
     )
 
