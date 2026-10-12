@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/zhongweili-nanobanana-mcp-server-badge.png)](https://mseep.ai/app/zhongweili-nanobanana-mcp-server)
+
 # Nano Banana MCP Server 🍌
 
 A production-ready **Model Context Protocol (MCP)** server that provides AI-powered image generation capabilities through Google's **Gemini** models with intelligent model selection.
