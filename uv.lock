@@ -1434,6 +1434,7 @@ version = "0.4.6"
 source = { editable = "." }
 dependencies = [
     { name = "beartype", version = "0.23.0rc2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15'" },
+    { name = "cryptography", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'" },
     { name = "fastmcp" },
     { name = "google-genai" },
     { name = "pillow" },
@@ -1477,6 +1478,7 @@ dev = [
 requires-dist = [
     { name = "beartype", marker = "python_full_version >= '3.15'", specifier = ">=0.23.0rc2" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
+    { name = "cryptography", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'", specifier = "<49" },
     { name = "fastmcp", specifier = ">=2.11.0,<3" },
     { name = "fastmcp", marker = "extra == 'dev'", specifier = ">=2.11.0,<3" },
     { name = "google-genai", specifier = ">=1.57.0" },
