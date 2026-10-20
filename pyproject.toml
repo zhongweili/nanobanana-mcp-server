@@ -30,6 +30,9 @@ dependencies = [
     "pydantic>=2.14.0b2; python_version >= '3.15'",
     # beartype 0.22.9 imports typing.no_type_check_decorator, removed in 3.15.
     "beartype>=0.23.0rc2; python_version >= '3.15'",
+    # cryptography (transitive via fastmcp) >=49 ships no macOS x86_64/universal2 wheels,
+    # so Intel Macs would build it from source and fail without OpenSSL headers (#38).
+    "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
 ]
 
 [project.optional-dependencies]
