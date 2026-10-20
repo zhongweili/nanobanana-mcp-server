@@ -503,6 +503,11 @@ LOG_FORMAT=standard                        # standard, json, detailed
 - The server creates images in `~/nanobanana-images` by default
 - Ensure write permissions to your home directory
 
+**"Failed to build cryptography" on Intel Mac (x86_64)**
+
+- `cryptography` 49+ no longer publishes Intel Mac wheels, so older releases of this server try to compile it from source
+- Workaround: `uvx --with "cryptography<49" nanobanana-mcp-server`
+
 ### Development Setup
 
 For local development:
