@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **NB2/Pro 404 on fresh installs**: google-genai 3.0.0 changed the Gemini Developer API default from `v1beta` to `v1`, where the image models are not served, so `nb2` and `pro` failed with `404 NOT_FOUND ... not found for API version v1`. API-key clients now set `api_version="v1beta"` explicitly, and `google-genai` is capped at `>=1.57.0,<3` until 3.x is tested.
+
 ## [0.4.6] - 2026-09-27
 
 ### Fixed
