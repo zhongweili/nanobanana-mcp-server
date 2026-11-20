@@ -1430,7 +1430,7 @@ wheels = [
 
 [[package]]
 name = "nanobanana-mcp-server"
-version = "0.4.6"
+version = "0.4.7"
 source = { editable = "." }
 dependencies = [
     { name = "beartype", version = "0.23.0rc2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15'" },

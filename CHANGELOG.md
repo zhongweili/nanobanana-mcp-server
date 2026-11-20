@@ -5,10 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.7] - 2026-11-20
+
+### Added
+- **Model ID environment overrides**: Support `NANOBANANA_NB2_MODEL`, `NANOBANANA_PRO_MODEL`, and `NANOBANANA_FLASH_MODEL` environment variables to override default model IDs without waiting for a release (#42).
 
 ### Fixed
-- **NB2/Pro 404 on fresh installs**: google-genai 3.0.0 changed the Gemini Developer API default from `v1beta` to `v1`, where the image models are not served, so `nb2` and `pro` failed with `404 NOT_FOUND ... not found for API version v1`. API-key clients now set `api_version="v1beta"` explicitly, and `google-genai` is capped at `>=1.57.0,<3` until 3.x is tested.
+- **NB2/Pro 404 on fresh installs**: Explicitly set `api_version="v1beta"` for Developer API (API-key) clients and cap `google-genai` at `>=1.57.0,<3` so fresh `uvx` installs do not fail under `google-genai` 3.x's `v1` default (#40, #41, #42).
+- **Intel Mac installs**: Cap `cryptography<49` on macOS `x86_64` so `uvx` installs use prebuilt `universal2` wheels instead of compiling from source without OpenSSL headers (#38, #39).
+- **Python 3.15 compatibility**: Replace removed `datetime.utcnow()` and update `pydantic`/`beartype` constraints for Python 3.15+.
+- **Package metadata URLs**: Fix `[project.urls]` in `pyproject.toml` to point to `https://github.com/zhongweili/nanobanana-mcp-server` (#42).
+
+### Contributors
+- `@borrecw` (#40, #41)
 
 ## [0.4.6] - 2026-09-27
 
@@ -109,6 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test coverage
 - MIT License
 
+[0.4.7]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.4.6...v0.4.7
 [0.4.6]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/zhongweili/nanobanana-mcp-server/compare/v0.4.3...v0.4.4
