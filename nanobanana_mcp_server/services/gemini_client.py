@@ -50,9 +50,13 @@ class GeminiClient:
             if self.config.auth_method == AuthMethod.API_KEY:
                 if not self.config.gemini_api_key:
                     raise AuthenticationError("API key is required for API_KEY auth method")
+                # google-genai 3.x changed the Developer API default from v1beta
+                # to v1. The image models (including the -preview IDs) are served
+                # on v1beta, so pin it explicitly instead of relying on the SDK
+                # default. Vertex AI keeps the SDK's own default (v1beta1).
                 client_kwargs = {
                     "api_key": self.config.gemini_api_key,
-                    "http_options": http_options,
+                    "http_options": {**http_options, "api_version": "v1beta"},
                 }
                 self._client = genai.Client(**client_kwargs)
                 self._log_auth_method("API Key (Developer API)")
