@@ -63,10 +63,10 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nano-banana/mcp-server"
-Repository = "https://github.com/nano-banana/mcp-server.git"
-Documentation = "https://docs.nanobanana.dev"
-"Bug Tracker" = "https://github.com/nano-banana/mcp-server/issues"
+Homepage = "https://github.com/zhongweili/nanobanana-mcp-server"
+Repository = "https://github.com/zhongweili/nanobanana-mcp-server.git"
+Documentation = "https://github.com/zhongweili/nanobanana-mcp-server#readme"
+"Bug Tracker" = "https://github.com/zhongweili/nanobanana-mcp-server/issues"
 
 [project.scripts]
 nanobanana-mcp-server = "nanobanana_mcp_server.server:main"

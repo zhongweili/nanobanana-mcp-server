@@ -87,5 +87,5 @@ gcloud auth application-default login
 
 - **PyPI name:** `nanobanana-mcp-server`
 - **Registry:** `io.github.zhongweili/nanobanana-mcp-server`
-- **GitHub:** https://github.com/nano-banana/mcp-server
+- **GitHub:** https://github.com/zhongweili/nanobanana-mcp-server
 - **License:** MIT

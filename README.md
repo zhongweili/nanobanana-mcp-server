@@ -477,6 +477,11 @@ GCP_REGION=global  # Required for gemini-3-pro-image-preview and NB2; use "us-ce
 # Model Selection (optional)
 NANOBANANA_MODEL=auto  # Options: flash, nb2, pro, auto (default: auto → nb2)
 
+# Model ID Overrides (optional — override defaults if Google renames or deprecates model IDs)
+# NANOBANANA_NB2_MODEL=gemini-3.1-flash-image-preview
+# NANOBANANA_PRO_MODEL=gemini-3-pro-image-preview
+# NANOBANANA_FLASH_MODEL=gemini-2.5-flash-image
+
 # Optional
 IMAGE_OUTPUT_DIR=/path/to/image/directory  # Default: ~/nanobanana-images
 GEMINI_BASE_URL=https://custom-api.example.com  # Custom API endpoint (for proxies/gateways)

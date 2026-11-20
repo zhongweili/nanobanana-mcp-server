@@ -2,7 +2,13 @@
 
 import logging
 
-from ..config.settings import ModelSelectionConfig, ModelTier
+from ..config.settings import (
+    FlashImageConfig,
+    ModelSelectionConfig,
+    ModelTier,
+    NanoBanana2Config,
+    ProImageConfig,
+)
 from .image_service import ImageService
 from .pro_image_service import ProImageService
 
@@ -167,6 +173,13 @@ class ModelSelector:
             )
             return ModelTier.NB2
 
+    @staticmethod
+    def _configured_model_id(service: object, attr: str, default: str) -> str:
+        """Read configured model_name from a service without failing on mocks."""
+        cfg = getattr(service, attr, None)
+        model_name = getattr(cfg, "model_name", None)
+        return model_name if isinstance(model_name, str) and model_name.strip() else default
+
     def get_model_info(self, tier: ModelTier) -> dict:
         """
         Get information about a specific model tier.
@@ -181,7 +194,9 @@ class ModelSelector:
             return {
                 "tier": "pro",
                 "name": "Gemini 3 Pro Image",
-                "model_id": "gemini-3-pro-image-preview",
+                "model_id": self._configured_model_id(
+                    self.pro_service, "config", ProImageConfig.model_name
+                ),
                 "max_resolution": "4K (3840px)",
                 "features": [
                     "4K resolution",
@@ -196,7 +211,9 @@ class ModelSelector:
             return {
                 "tier": "nb2",
                 "name": "Gemini 3.1 Flash Image",
-                "model_id": "gemini-3.1-flash-image-preview",
+                "model_id": self._configured_model_id(
+                    self.nb2_service, "config", NanoBanana2Config.model_name
+                ),
                 "max_resolution": "4K (3840px)",
                 "features": [
                     "Flash-speed generation",
@@ -212,7 +229,9 @@ class ModelSelector:
             return {
                 "tier": "flash",
                 "name": "Gemini 2.5 Flash Image",
-                "model_id": "gemini-2.5-flash-image",
+                "model_id": self._configured_model_id(
+                    self.flash_service, "gemini_config", FlashImageConfig.model_name
+                ),
                 "max_resolution": "1024px",
                 "features": ["Very fast generation", "Low latency", "High-volume support"],
                 "best_for": "Rapid prototyping, quick iterations",

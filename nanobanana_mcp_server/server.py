@@ -41,7 +41,7 @@ def create_app():
     try:
         # Load configuration
         server_config = ServerConfig.from_env()
-        gemini_config = GeminiConfig()
+        gemini_config = GeminiConfig.from_env()
 
         logger.info(f"Server transport: {server_config.transport}")
         logger.info(
@@ -84,7 +84,7 @@ def create_wrapper_app() -> NanoBananaMCP:
     try:
         # Load configuration
         server_config = ServerConfig.from_env()
-        gemini_config = GeminiConfig()
+        gemini_config = GeminiConfig.from_env()
 
         logger.info(f"Server transport: {server_config.transport}")
         logger.info(

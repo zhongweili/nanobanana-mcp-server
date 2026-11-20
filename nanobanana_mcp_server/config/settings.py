@@ -122,6 +122,12 @@ class ServerConfig:
         )
 
 
+def _env_model_override(env_var: str, default: str) -> str:
+    """Return a trimmed non-empty model ID override from env, or the default."""
+    value = os.getenv(env_var, "").strip()
+    return value or default
+
+
 @dataclass
 class BaseModelConfig:
     """Shared base configuration for all models."""
@@ -142,6 +148,12 @@ class FlashImageConfig(BaseModelConfig):
     supports_grounding: bool = False
     supports_media_resolution: bool = False
 
+    @classmethod
+    def from_env(cls) -> "FlashImageConfig":
+        """Load Flash config with optional NANOBANANA_FLASH_MODEL override."""
+        load_dotenv()
+        return cls(model_name=_env_model_override("NANOBANANA_FLASH_MODEL", cls.model_name))
+
 
 @dataclass
 class ProImageConfig(BaseModelConfig):
@@ -159,6 +171,12 @@ class ProImageConfig(BaseModelConfig):
     enable_search_grounding: bool = True
     request_timeout: int = 90  # Pro model needs more time for 4K
 
+    @classmethod
+    def from_env(cls) -> "ProImageConfig":
+        """Load Pro config with optional NANOBANANA_PRO_MODEL override."""
+        load_dotenv()
+        return cls(model_name=_env_model_override("NANOBANANA_PRO_MODEL", cls.model_name))
+
 
 @dataclass
 class NanoBanana2Config(ProImageConfig):
@@ -168,6 +186,12 @@ class NanoBanana2Config(ProImageConfig):
     request_timeout: int = 60  # Flash-speed model
     supports_thinking: bool = True  # Supports Minimal/High/Dynamic thinking
     supports_extreme_aspect_ratios: bool = True  # 4:1, 1:4, 8:1, 1:8
+
+    @classmethod
+    def from_env(cls) -> "NanoBanana2Config":
+        """Load NB2 config with optional NANOBANANA_NB2_MODEL override."""
+        load_dotenv()
+        return cls(model_name=_env_model_override("NANOBANANA_NB2_MODEL", cls.model_name))
 
 
 @dataclass
@@ -224,9 +248,9 @@ class ModelSelectionConfig:
 def describe_default_model(tier: ModelTier) -> str:
     """One-line description of the configured default model behavior."""
     names = {
-        ModelTier.FLASH: FlashImageConfig().model_name,
-        ModelTier.PRO: ProImageConfig().model_name,
-        ModelTier.NB2: NanoBanana2Config().model_name,
+        ModelTier.FLASH: FlashImageConfig.from_env().model_name,
+        ModelTier.PRO: ProImageConfig.from_env().model_name,
+        ModelTier.NB2: NanoBanana2Config.from_env().model_name,
     }
     if tier == ModelTier.AUTO:
         return (
@@ -245,3 +269,9 @@ class GeminiConfig:
     max_inline_image_size: int = 20 * 1024 * 1024  # 20MB
     default_image_format: str = "png"
     request_timeout: int = 60  # seconds - increased for image generation
+
+    @classmethod
+    def from_env(cls) -> "GeminiConfig":
+        """Load legacy Flash config with optional NANOBANANA_FLASH_MODEL override."""
+        load_dotenv()
+        return cls(model_name=_env_model_override("NANOBANANA_FLASH_MODEL", cls.model_name))

@@ -11,7 +11,7 @@ from typing import Any
 from fastmcp.utilities.types import Image as MCPImage
 from PIL import Image as PILImage
 
-from ..config.settings import MediaResolution, ProImageConfig, ThinkingLevel
+from ..config.settings import MediaResolution, NanoBanana2Config, ProImageConfig, ThinkingLevel
 from ..core.exceptions import ImageProcessingError
 from ..core.progress_tracker import ProgressContext
 from ..utils.image_utils import create_thumbnail, validate_image_format
@@ -33,11 +33,7 @@ class ProImageService:
         self.config = config
         self.storage_service = storage_service
         self.logger = logging.getLogger(__name__)
-        self._tier_label = (
-            "nb2"
-            if config.model_name.strip().lower() == "gemini-3.1-flash-image-preview"
-            else "pro"
-        )
+        self._tier_label = "nb2" if isinstance(config, NanoBanana2Config) else "pro"
 
     def generate_images(
         self,

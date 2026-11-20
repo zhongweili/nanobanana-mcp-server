@@ -82,8 +82,8 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
     _maintenance_service = MaintenanceService(_files_api_service, _image_database_service, out_dir)
 
     # Initialize multi-model support services
-    flash_config = FlashImageConfig()
-    pro_config = ProImageConfig()
+    flash_config = FlashImageConfig.from_env()
+    pro_config = ProImageConfig.from_env()
     selection_config = ModelSelectionConfig.from_env()
 
     # Create separate Gemini clients for each model
@@ -94,7 +94,7 @@ def initialize_services(server_config: ServerConfig, gemini_config: GeminiConfig
     _pro_image_service = ProImageService(_pro_gemini_client, pro_config, _image_storage_service)
 
     # Create NB2 image service (Gemini 3.1 Flash Image — Flash speed + Pro quality)
-    nb2_config = NanoBanana2Config()
+    nb2_config = NanoBanana2Config.from_env()
     _nb2_gemini_client = GeminiClient(server_config, nb2_config)
     _nb2_image_service = ProImageService(_nb2_gemini_client, nb2_config, _image_storage_service)
 

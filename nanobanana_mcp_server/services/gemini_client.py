@@ -252,7 +252,7 @@ class GeminiClient:
             # Grounding is controlled via prompt/system instructions
             if "thinking_level" in config:
                 self.logger.info(
-                    "Note: thinking_level is not supported by gemini-3-pro-image-preview, ignoring"
+                    f"Note: thinking_level is not supported by {self.gemini_config.model_name}, ignoring"
                 )
 
         else:
